@@ -1,0 +1,116 @@
+[debug] [2026-11-05T19:35:52.242Z] ----------------------------------------------------------------------
+[debug] [2026-11-05T19:35:52.243Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\vk311\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-11-05T19:35:52.244Z] CLI Version:   15.35.0
+[debug] [2026-11-05T19:35:52.244Z] Platform:      win32
+[debug] [2026-11-05T19:35:52.244Z] Node Version:  v24.15.0
+[debug] [2026-11-05T19:35:52.244Z] Detected Agent: unknown
+[debug] [2026-11-05T19:35:52.244Z] Time:          Fri Nov 06 2026 01:05:52 GMT+0530 (India Standard Time)
+[debug] [2026-11-05T19:35:52.244Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-11-05T19:35:53.570Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-11-05T19:35:53.570Z] > authorizing via signed-in user (mudulivishal6@gmail.com)
+[debug] [2026-11-05T19:35:53.570Z] [iam] checking project viba-webdev for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-11-05T19:35:53.578Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:53.579Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:53.579Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/viba-webdev:testIamPermissions [none]
+[debug] [2026-11-05T19:35:53.579Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/viba-webdev:testIamPermissions  x-goog-user-project=viba-webdev
+[debug] [2026-11-05T19:35:53.579Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/viba-webdev:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-11-05T19:35:55.158Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/viba-webdev:testIamPermissions 200
+[debug] [2026-11-05T19:35:55.158Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/viba-webdev:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-11-05T19:35:55.159Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:55.159Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:55.159Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/viba-webdev [none]
+[debug] [2026-11-05T19:35:55.948Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/viba-webdev 200
+[debug] [2026-11-05T19:35:55.948Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/viba-webdev {"projectId":"viba-webdev","projectNumber":"22175305301","displayName":"viba-webdev","name":"projects/viba-webdev","resources":{"hostingSite":"viba-webdev"},"state":"ACTIVE","labels":{"firebase":"enabled"},"etag":"1_800f8cd3-8601-4100-84ef-533f46d34122"}
+[debug] [2026-11-05T19:35:57.357Z] defaultcredentials: writing to file C:\Users\vk311\AppData\Roaming\firebase\mudulivishal6_gmail_com_application_default_credentials.json
+[debug] [2026-11-05T19:35:57.358Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:57.358Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:57.359Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites pageToken=&pageSize=10
+[debug] [2026-11-05T19:35:58.838Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites 200
+[debug] [2026-11-05T19:35:58.838Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites {"sites":[{"name":"projects/viba-webdev/sites/viba-webdev","defaultUrl":"https://viba-webdev.web.app","appId":"1:22175305301:web:4803e8a064090d6a110edc","type":"DEFAULT_SITE"}]}
+[debug] [2026-11-05T19:35:58.839Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:58.839Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:35:58.839Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:22175305301:web:4803e8a064090d6a110edc/config [none]
+[debug] [2026-11-05T19:36:00.111Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:22175305301:web:4803e8a064090d6a110edc/config 200
+[debug] [2026-11-05T19:36:00.111Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/-/webApps/1:22175305301:web:4803e8a064090d6a110edc/config {"projectId":"viba-webdev","appId":"1:22175305301:web:4803e8a064090d6a110edc","storageBucket":"viba-webdev.firebasestorage.app","apiKey":"AIzaSyBwuyrDIxT2CnVonfUmnTLiPKgVzLrLmvY","authDomain":"viba-webdev.firebaseapp.com","messagingSenderId":"22175305301","measurementId":"G-M4TRCGG85L","projectNumber":"22175305301","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 16.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-11-05T19:36:03.618Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:36:03.619Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:36:03.619Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev [none]
+[debug] [2026-11-05T19:36:04.990Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev 200
+[debug] [2026-11-05T19:36:04.990Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev {"name":"projects/viba-webdev/sites/viba-webdev","defaultUrl":"https://viba-webdev.web.app","appId":"1:22175305301:web:4803e8a064090d6a110edc","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.4.5 (Turbopack)
+- Environments: .env
+
+[info] ⚠ Warning: Next.js ignored package-lock.json in C:\Users\vk311 because it would include your home directory (C:\Users\vk311).
+ To use this directory, set `turbopack.root` in your Next.js config.
+
+
+[info] ✓ Running next.config.ts took 173ms
+
+[info] - Cache Components enabled
+- Partial Prefetching enabled
+
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 1404ms
+
+[info]   Running TypeScript ...
+
+[info]   Finished TypeScript in 3.8s ...
+
+[info]   Collecting page data using 10 workers ...
+
+[info]   Generating static pages using 10 workers (0/9) ...
+
+[info]   Generating static pages using 10 workers (2/9) 
+
+[info]   Generating static pages using 10 workers (4/9) 
+
+[info]   Generating static pages using 10 workers (6/9) 
+
+[info] ✓ Generating static pages using 10 workers (9/9) in 2.4s
+
+[info]   Finalizing page optimization ...
+
+[info] 
+
+[info] Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/customers
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ○ /api/projects
+└ ○ /api/services
+
+
+[info] 
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+[info] Building a Cloud Function to run this application. This is needed due to:
+[info]  • non-static component /api/customers/route
+[info]  • non-static component /api/health/route
+[info]  • non-static component /api/inquiries/route
+[info] 
+[debug] [2026-11-05T19:36:23.872Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:36:23.873Z] Checked if tokens are valid: true, expires at: 1793909632428
+[debug] [2026-11-05T19:36:23.873Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev [none]
+[debug] [2026-11-05T19:36:25.233Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev 200
+[debug] [2026-11-05T19:36:25.233Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/viba-webdev/sites/viba-webdev {"name":"projects/viba-webdev/sites/viba-webdev","defaultUrl":"https://viba-webdev.web.app","appId":"1:22175305301:web:4803e8a064090d6a110edc","type":"DEFAULT_SITE"}
+[debug] [2026-11-05T19:36:25.764Z] Error: EPERM: operation not permitted, symlink 'C:\Users\vk311\Downloads\viba-webdev\node_modules\firebase-admin' -> 'C:\Users\vk311\Downloads\viba-webdev\.firebase\viba-webdev\functions\.next\node_modules\firebase-admin-a14c8a5423a75469'
+[error] 
+[error] Error: An unexpected error has occurred.
