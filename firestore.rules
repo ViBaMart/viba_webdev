@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isCustomerEmail(email) {
+      return isAuthenticated() &&
+             request.auth.token.email != null &&
+             request.auth.token.email.lower() == email.lower();
+    }
+
+    // 1. Customer Profiles: Only the authenticated customer can read and update their own profile
+    match /customer_profiles/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    // 2. Customer Applications:
+    // - Unauthenticated and authenticated users can create applications (public intake)
+    // - Read is restricted strictly to the owning customer (by uid or verified email)
+    // - Direct client modification is blocked (handled via backend Admin/Customer SDKs)
+    match /applications/{applicationId} {
+      allow create: if true;
+      allow read: if isAuthenticated() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.email != null && isCustomerEmail(resource.data.email))
+      );
+      allow update, delete: if false;
+    }
+
+    // 3. Customer Quotations:
+    // - Read restricted strictly to the owning customer
+    // - Writes blocked from untrusted client contexts (managed via secured backend endpoints)
+    match /quotations/{quotationId} {
+      allow read: if isAuthenticated() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.email != null && isCustomerEmail(resource.data.email))
+      );
+      allow write: if false;
+    }
+
+    // 4. Customer Payments:
+    // - Read restricted strictly to the owning customer
+    // - Writes blocked from untrusted client contexts
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.customerEmail != null && isCustomerEmail(resource.data.customerEmail))
+      );
+      allow write: if false;
+    }
+
+    // 5. Customer Projects & 6 Stages:
+    // - Read restricted strictly to the owning customer
+    // - Writes blocked from untrusted client contexts
+    match /customer_projects/{projectId} {
+      allow read: if isAuthenticated() && (
+        (resource.data.userId != null && resource.data.userId == request.auth.uid) ||
+        (resource.data.clientEmail != null && isCustomerEmail(resource.data.clientEmail))
+      );
+      allow write: if false;
+    }
+
+    // Default Deny All: Any unspecified collections or wildcard paths are blocked
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { VbLogo } from "@/components/common/VbLogo";
 import { Button } from "@/components/common/Button";
@@ -11,6 +12,7 @@ import {
   Eye,
   FileCheck,
   Sparkles,
+  User,
 } from "lucide-react";
 
 export function Navbar() {
@@ -226,6 +228,17 @@ export function Navbar() {
                   <span>Apply for Website</span>
                 </Button>
               </a>
+
+              <Link href="/customer">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-slate-300 text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-semibold"
+                >
+                  <User className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Client Portal</span>
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -292,6 +305,21 @@ export function Navbar() {
                 <span>View Demo</span>
               </Button>
             </a>
+
+            <Link
+              href="/customer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full"
+            >
+              <Button
+                variant="outline"
+                size="md"
+                className="w-full justify-center gap-2 border-slate-300 text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-semibold"
+              >
+                <User className="h-4 w-4 text-blue-600" />
+                <span>Client Portal & Dashboard</span>
+              </Button>
+            </Link>
 
             <a
               href="#apply"

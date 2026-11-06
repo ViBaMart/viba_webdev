@@ -7,13 +7,14 @@ import {
   CustomerApplication,
   ApplicationStatus,
   WebsiteType,
-  CustomerQuotation,
-  CustomerProject,
-  QuotationLineItem,
-  QuotationStatus,
-  ProjectStatus,
-  ProjectMilestone,
 } from "@/types/application";
+import {
+  CustomerProjectRecord,
+  ProjectStage,
+  PROJECT_STAGES_LIST,
+} from "@/types/customerProject";
+import { QuotationRecord, AdditionalChargeItem } from "@/types/quotation";
+import { PaymentRecord, PaymentStatus, PaymentTransaction } from "@/types/payment";
 import {
   ShieldAlert,
   Search,
@@ -37,9 +38,15 @@ import {
   Globe,
   Tag,
   Paperclip,
-  CheckSquare,
-  Square,
   Lock,
+  CreditCard,
+  Printer,
+  Check,
+  Clock,
+  MessageSquare,
+  UploadCloud,
+  Share2,
+  Copy,
 } from "lucide-react";
 
 const ALL_APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -57,6 +64,15 @@ const WEBSITE_TYPES: WebsiteType[] = [
   "Static Website",
   "Dynamic Business Website",
   "E-commerce Website",
+];
+
+const ALL_PAYMENT_STATUSES: PaymentStatus[] = [
+  "Unpaid",
+  "Pending Advance Verification",
+  "Advance Paid",
+  "Pending Final Verification",
+  "Fully Paid",
+  "Refunded",
 ];
 
 function getStatusBadgeStyle(status: string) {
@@ -85,12 +101,35 @@ function getStatusBadgeStyle(status: string) {
   }
 }
 
+function getPaymentBadgeStyle(status: PaymentStatus) {
+  switch (status) {
+    case "Fully Paid":
+      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+    case "Advance Paid":
+      return "bg-teal-500/15 text-teal-300 border-teal-500/30";
+    case "Pending Advance Verification":
+    case "Pending Final Verification":
+      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+    case "Refunded":
+      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
+    case "Unpaid":
+    default:
+      return "bg-rose-500/15 text-rose-400 border-rose-500/30";
+  }
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function computeDefaultLaunchDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().split("T")[0];
 }
 
 export default function AdminDashboardPage() {
@@ -106,7 +145,7 @@ export default function AdminDashboardPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Active Dashboard Tab
-  const [activeTab, setActiveTab] = useState<"applications" | "quotations" | "projects">("applications");
+  const [activeTab, setActiveTab] = useState<"applications" | "quotations" | "payments" | "projects">("applications");
 
   // Applications State
   const [applications, setApplications] = useState<CustomerApplication[]>([]);
@@ -123,109 +162,131 @@ export default function AdminDashboardPage() {
   const [statusMessage, setStatusMessage] = useState<{ text: string; error?: boolean } | null>(null);
 
   // Quotations State
-  const [quotations, setQuotations] = useState<CustomerQuotation[]>([]);
+  const [quotations, setQuotations] = useState<QuotationRecord[]>([]);
   const [isLoadingQuotations, setIsLoadingQuotations] = useState(false);
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [isSavingQuotation, setIsSavingQuotation] = useState(false);
   const [quotationError, setQuotationError] = useState<string | null>(null);
+
+  // Payments State
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
+  const [verifyingTxnId, setVerifyingTxnId] = useState<string | null>(null);
+  const [paymentActionMessage, setPaymentActionMessage] = useState<{ text: string; error?: boolean } | null>(null);
+
+  // Quotation Preparation Form with the 4 Explicit Charge Categories:
+  // 1. Selected Package
+  // 2. Development Charges
+  // 3. Annual Service Charges
+  // 4. Approved Additional Charges
+  // 5. Total, Advance & Remaining Payment
   const [quotationForm, setQuotationForm] = useState<{
     applicationId: string;
     customerName: string;
     businessName: string;
     email: string;
     mobileNumber: string;
+    businessAddress: string;
     websiteType: WebsiteType;
     currency: "INR" | "USD";
-    items: QuotationLineItem[];
+    packageName: string;
+    packagePrice: number;
+    developmentDescription: string;
+    developmentAmount: number;
+    annualServiceDescription: string;
+    annualServiceAmount: number;
+    additionalCharges: AdditionalChargeItem[];
     discount: number;
-    taxRate: number;
-    estimatedTimelineWeeks: number;
+    taxRatePercent: number;
+    advancePaymentPercentOrAmount: number;
+    estimatedTimeline: string;
+    paymentTerms: string;
     scopeDeliverables: string;
-    termsAndConditions: string;
   }>({
     applicationId: "",
     customerName: "",
     businessName: "",
     email: "",
     mobileNumber: "",
+    businessAddress: "",
     websiteType: "Static Website",
     currency: "INR",
-    items: [
-      { id: "item-1", description: "UI/UX Architecture & Responsive Design", quantity: 1, unitPrice: 8000, total: 8000 },
-      { id: "item-2", description: "Frontend Development & Interactive Components", quantity: 1, unitPrice: 10000, total: 10000 },
-    ],
+    packageName: "Static Business Starter",
+    packagePrice: 9999,
+    developmentDescription: "Frontend UI/UX design, mobile responsiveness, contact workflow",
+    developmentAmount: 5000,
+    annualServiceDescription: "Annual cloud hosting, domain renewal, SSL security & maintenance",
+    annualServiceAmount: 2500,
+    additionalCharges: [],
     discount: 0,
-    taxRate: 18,
-    estimatedTimelineWeeks: 2,
-    scopeDeliverables: "Full responsive layout, SEO meta setup, Contact intake, SSL deployment",
-    termsAndConditions: "50% advance mobilization deposit, 50% upon successful testing and production launch.",
+    taxRatePercent: 18,
+    advancePaymentPercentOrAmount: 50,
+    estimatedTimeline: "2-3 weeks from advance payment receipt",
+    paymentTerms: "50% advance mobilization deposit, 50% upon final signoff and delivery.",
+    scopeDeliverables: "Custom responsive layouts\nContact inquiry intake\nSSL deployment & hosting\n30-day bug warranty",
   });
 
   // Projects State
-  const [projects, setProjects] = useState<CustomerProject[]>([]);
+  const [projects, setProjects] = useState<CustomerProjectRecord[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [isSavingProject, setIsSavingProject] = useState(false);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [copiedProjectId, setCopiedProjectId] = useState<string | null>(null);
+
+  // Note Modal State
+  const [noteModalProject, setNoteModalProject] = useState<CustomerProjectRecord | null>(null);
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteContent, setNoteContent] = useState("");
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
+  // File Modal State
+  const [fileModalProject, setFileModalProject] = useState<CustomerProjectRecord | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileCategory, setFileCategory] = useState<
+    "Design Mockups" | "Preview Builds" | "Documentation" | "Source / Assets"
+  >("Design Mockups");
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
   const [projectForm, setProjectForm] = useState<{
     applicationId: string;
+    quotationId: string;
+    paymentId?: string;
     projectName: string;
     clientName: string;
     clientBusiness: string;
     clientEmail: string;
     clientMobile: string;
-    websiteType: WebsiteType;
-    status: ProjectStatus;
-    targetLaunchDate: string;
+    websiteType: string;
+    expectedDeliveryDate: string;
     stagingUrl: string;
     repositoryUrl: string;
     assignedLead: string;
-    internalNotes: string;
+    initialNotes: string;
   }>({
     applicationId: "",
+    quotationId: "",
+    paymentId: "",
     projectName: "",
     clientName: "",
     clientBusiness: "",
     clientEmail: "",
     clientMobile: "",
     websiteType: "Dynamic Business Website",
-    status: "Planning",
-    targetLaunchDate: "",
+    expectedDeliveryDate: "",
     stagingUrl: "",
     repositoryUrl: "",
     assignedLead: "ViBa Engineering Team",
-    internalNotes: "",
+    initialNotes: "",
   });
 
-  // Accessible IDs for form controls
+  // Accessible IDs for Form Controls
   const searchInputId = useId();
   const typeFilterId = useId();
   const statusFilterId = useId();
   const appStatusSelectId = useId();
-  const quoteAppSelectId = useId();
-  const quoteCustNameId = useId();
-  const quoteBizNameId = useId();
-  const quoteEmailId = useId();
-  const quoteMobileId = useId();
-  const quoteWebTypeId = useId();
-  const quoteCurrencyId = useId();
-  const quoteTimelineId = useId();
-  const quoteDiscountId = useId();
-  const quoteTaxRateId = useId();
-  const quoteDeliverablesId = useId();
-  const quoteTermsId = useId();
-  const projNameId = useId();
-  const projClientNameId = useId();
-  const projClientBizId = useId();
-  const projClientEmailId = useId();
-  const projClientMobileId = useId();
-  const projWebTypeId = useId();
-  const projStatusId = useId();
-  const projLaunchDateId = useId();
-  const projLeadId = useId();
-  const projStagingId = useId();
-  const projRepoId = useId();
-  const projNotesId = useId();
 
   // 1. Initial Authentication Check on Mount
   useEffect(() => {
@@ -261,7 +322,7 @@ export default function AdminDashboardPage() {
     };
   }, []);
 
-  // 2. Fetch Applications Helper (for manual triggers like Refresh or Status Update)
+  // 2. Fetch Applications Helper
   const fetchApplications = useCallback(async () => {
     try {
       setIsLoadingApps(true);
@@ -301,7 +362,7 @@ export default function AdminDashboardPage() {
   const fetchQuotations = useCallback(async () => {
     try {
       setIsLoadingQuotations(true);
-      const res = await fetch("/api/admin/quotations", { cache: "no-store" });
+      const res = await fetch("/api/quotations", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -315,11 +376,29 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // 4. Fetch Projects Helper
+  // 4. Fetch Payments Helper
+  const fetchPayments = useCallback(async () => {
+    try {
+      setIsLoadingPayments(true);
+      const res = await fetch("/api/payments", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setPayments(json.data || []);
+        }
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, []);
+
+  // 5. Fetch Projects Helper
   const fetchProjects = useCallback(async () => {
     try {
       setIsLoadingProjects(true);
-      const res = await fetch("/api/admin/projects", { cache: "no-store" });
+      const res = await fetch("/api/projects?type=customer", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
         if (json.success) {
@@ -333,7 +412,7 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // 5. Synchronize data when Authenticated and Tab/Filters change
+  // 6. Synchronize Tab Data
   useEffect(() => {
     if (!isAuthenticated) return;
     let isMounted = true;
@@ -364,7 +443,7 @@ export default function AdminDashboardPage() {
           if (isMounted) setIsLoadingApps(false);
         });
     } else if (activeTab === "quotations") {
-      fetch("/api/admin/quotations", { cache: "no-store" })
+      fetch("/api/quotations", { cache: "no-store" })
         .then(async (res) => {
           if (!isMounted) return;
           const json = await res.json();
@@ -376,8 +455,21 @@ export default function AdminDashboardPage() {
         .finally(() => {
           if (isMounted) setIsLoadingQuotations(false);
         });
+    } else if (activeTab === "payments") {
+      fetch("/api/payments", { cache: "no-store" })
+        .then(async (res) => {
+          if (!isMounted) return;
+          const json = await res.json();
+          if (isMounted && json.success) {
+            setPayments(json.data || []);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsLoadingPayments(false);
+        });
     } else if (activeTab === "projects") {
-      fetch("/api/admin/projects", { cache: "no-store" })
+      fetch("/api/projects?type=customer", { cache: "no-store" })
         .then(async (res) => {
           if (!isMounted) return;
           const json = await res.json();
@@ -453,7 +545,6 @@ export default function AdminDashboardPage() {
         throw new Error(json.error || "Failed to update status in database.");
       }
 
-      // Update in applications list
       setApplications((prev) =>
         prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app))
       );
@@ -476,40 +567,55 @@ export default function AdminDashboardPage() {
 
   // Open Quotation Builder for Application
   const openQuotationBuilder = (app: CustomerApplication) => {
+    const isEcom = app.websiteType === "E-commerce Website";
+    const isDyn = app.websiteType === "Dynamic Business Website";
+
+    const defaultPackagePrice = isEcom ? 24999 : isDyn ? 14999 : 9999;
+    const defaultDevPrice = isEcom ? 12000 : isDyn ? 8000 : 5000;
+    const defaultAnnualPrice = isEcom ? 4500 : isDyn ? 3000 : 2500;
+
     setQuotationForm({
       applicationId: app.id,
       customerName: app.customerName,
       businessName: app.businessName,
       email: app.email,
       mobileNumber: app.mobileNumber,
+      businessAddress: app.businessAddress,
       websiteType: app.websiteType,
       currency: "INR",
-      items: [
-        {
-          id: "item-1",
-          description: `${app.websiteType} - Custom Architecture & Design`,
-          quantity: 1,
-          unitPrice: app.websiteType === "E-commerce Website" ? 18000 : 10000,
-          total: app.websiteType === "E-commerce Website" ? 18000 : 10000,
-        },
-        {
-          id: "item-2",
-          description: "Database, CMS & Integration of Required Features",
-          quantity: 1,
-          unitPrice: app.websiteType === "E-commerce Website" ? 12000 : 6000,
-          total: app.websiteType === "E-commerce Website" ? 12000 : 6000,
-        },
-      ],
+      packageName: `${app.selectedPackage || app.websiteType + " Package"}`,
+      packagePrice: defaultPackagePrice,
+      developmentDescription: `Frontend & backend engineering for ${app.websiteType} with responsive UI`,
+      developmentAmount: defaultDevPrice,
+      annualServiceDescription: "Cloud hosting, SSL certificates, database backups & maintenance",
+      annualServiceAmount: defaultAnnualPrice,
+      additionalCharges: [],
       discount: 0,
-      taxRate: 18,
-      estimatedTimelineWeeks: app.websiteType === "E-commerce Website" ? 4 : 2,
+      taxRatePercent: 18,
+      advancePaymentPercentOrAmount: 50,
+      estimatedTimeline: isEcom ? "3-4 weeks" : "2-3 weeks",
+      paymentTerms: "50% advance mobilization deposit, balance upon final client signoff.",
       scopeDeliverables: `Pages: ${app.requiredPages}\nFeatures: ${app.requiredFunctionality}\nDomain: ${app.domainRequirement}`,
-      termsAndConditions:
-        "50% advance mobilization deposit, 50% upon successful testing and production launch. Includes 30 days of post-launch support.",
     });
     setQuotationError(null);
     setShowQuotationModal(true);
   };
+
+  // Live Calculation for Quotation Builder
+  const subtotalCalc =
+    (Number(quotationForm.packagePrice) || 0) +
+    (Number(quotationForm.developmentAmount) || 0) +
+    (Number(quotationForm.annualServiceAmount) || 0) +
+    quotationForm.additionalCharges.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+  const discountCalc = Number(quotationForm.discount) || 0;
+  const discountedSubtotal = Math.max(0, subtotalCalc - discountCalc);
+  const taxCalc = Math.round((discountedSubtotal * (Number(quotationForm.taxRatePercent) || 0)) / 100);
+  const totalCalc = discountedSubtotal + taxCalc;
+  const advanceCalc =
+    quotationForm.advancePaymentPercentOrAmount <= 100
+      ? Math.round((totalCalc * quotationForm.advancePaymentPercentOrAmount) / 100)
+      : Math.min(totalCalc, Math.round(quotationForm.advancePaymentPercentOrAmount));
+  const remainingCalc = Math.max(0, totalCalc - advanceCalc);
 
   // Save Quotation to Database
   const handleSaveQuotation = async (e: React.FormEvent) => {
@@ -518,12 +624,7 @@ export default function AdminDashboardPage() {
     setQuotationError(null);
 
     try {
-      const subtotal = quotationForm.items.reduce((acc, it) => acc + (Number(it.total) || 0), 0);
-      const discount = Number(quotationForm.discount) || 0;
-      const taxAmount = ((subtotal - discount) * (Number(quotationForm.taxRate) || 0)) / 100;
-      const totalAmount = Math.max(0, subtotal - discount + taxAmount);
-
-      const res = await fetch("/api/admin/quotations", {
+      const res = await fetch("/api/quotations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -532,17 +633,29 @@ export default function AdminDashboardPage() {
           businessName: quotationForm.businessName,
           email: quotationForm.email,
           mobileNumber: quotationForm.mobileNumber,
+          businessAddress: quotationForm.businessAddress,
           websiteType: quotationForm.websiteType,
           currency: quotationForm.currency,
-          items: quotationForm.items,
-          subtotal,
-          discount,
-          tax: taxAmount,
-          totalAmount,
-          estimatedTimelineWeeks: quotationForm.estimatedTimelineWeeks,
+          selectedPackage: {
+            name: quotationForm.packageName,
+            price: Number(quotationForm.packagePrice),
+          },
+          developmentCharges: {
+            description: quotationForm.developmentDescription,
+            amount: Number(quotationForm.developmentAmount),
+          },
+          annualServiceCharges: {
+            description: quotationForm.annualServiceDescription,
+            amount: Number(quotationForm.annualServiceAmount),
+            billingCycle: "Annually",
+          },
+          additionalCharges: quotationForm.additionalCharges,
+          discount: quotationForm.discount,
+          taxRatePercent: quotationForm.taxRatePercent,
+          advancePaymentPercentOrAmount: quotationForm.advancePaymentPercentOrAmount,
+          estimatedTimeline: quotationForm.estimatedTimeline,
+          paymentTerms: quotationForm.paymentTerms,
           scopeDeliverables: quotationForm.scopeDeliverables.split("\n").filter(Boolean),
-          termsAndConditions: quotationForm.termsAndConditions,
-          status: "Draft",
         }),
       });
 
@@ -553,6 +666,7 @@ export default function AdminDashboardPage() {
 
       setShowQuotationModal(false);
       fetchQuotations();
+      fetchPayments();
       fetchApplications();
       setActiveTab("quotations");
     } catch (err) {
@@ -562,41 +676,129 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Open Project Creator for Application
-  const openProjectCreator = (app: CustomerApplication) => {
+  // Admin Verifies Customer Payment Transaction
+  const handleVerifyTransaction = async (
+    quotationId: string,
+    transactionId: string,
+    action: "approve" | "reject"
+  ) => {
+    try {
+      setVerifyingTxnId(transactionId);
+      setPaymentActionMessage(null);
+
+      const res = await fetch(`/api/payments/${quotationId}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactionId,
+          action,
+          verificationNotes:
+            action === "approve"
+              ? "Reconciled against official bank account settlement."
+              : "UTR verification failed: amount not received in statement.",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to verify transaction.");
+      }
+
+      setPaymentActionMessage({
+        text: `Transaction ${transactionId} ${action === "approve" ? "verified & credited" : "declined"}.`,
+      });
+      fetchPayments();
+      if (selectedPayment && selectedPayment.quotationId === quotationId) {
+        setSelectedPayment(json.data);
+      }
+    } catch (err) {
+      setPaymentActionMessage({
+        text: err instanceof Error ? err.message : "Error verifying payment.",
+        error: true,
+      });
+    } finally {
+      setVerifyingTxnId(null);
+    }
+  };
+
+  // Admin Direct Payment Status Update
+  const handleDirectPaymentStatusUpdate = async (quotationId: string, newStatus: PaymentStatus) => {
+    try {
+      setPaymentActionMessage(null);
+      const res = await fetch(`/api/payments/${quotationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: newStatus,
+          notes: `Manually updated by admin ${adminUser?.email}`,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to update payment status.");
+      }
+
+      setPaymentActionMessage({ text: `Payment status updated to "${newStatus}".` });
+      fetchPayments();
+      if (selectedPayment && selectedPayment.quotationId === quotationId) {
+        setSelectedPayment(json.data);
+      }
+    } catch (err) {
+      setPaymentActionMessage({
+        text: err instanceof Error ? err.message : "Error updating payment status.",
+        error: true,
+      });
+    }
+  };
+
+  // Open Project Creator
+  const openProjectCreator = (
+    app?: CustomerApplication,
+    quote?: QuotationRecord,
+    payment?: PaymentRecord
+  ) => {
+    const clientName = app?.customerName || quote?.customerName || payment?.customerName || "";
+    const clientBusiness = app?.businessName || quote?.businessName || payment?.businessName || "";
+    const clientEmail = app?.email || quote?.email || payment?.customerEmail || "";
+    const clientMobile = app?.mobileNumber || quote?.mobileNumber || "";
+    const websiteType = app?.websiteType || quote?.websiteType || "Dynamic Business Website";
+    const defaultName = clientBusiness ? `${clientBusiness} Website Platform` : `${clientName}'s Website`;
+    const targetDate = computeDefaultLaunchDate();
+
     setProjectForm({
-      applicationId: app.id,
-      projectName: `${app.businessName} Website`,
-      clientName: app.customerName,
-      clientBusiness: app.businessName,
-      clientEmail: app.email,
-      clientMobile: app.mobileNumber,
-      websiteType: app.websiteType,
-      status: "Planning",
-      targetLaunchDate: "",
+      applicationId: app?.id || quote?.applicationId || "",
+      quotationId: quote?.id || payment?.quotationId || "",
+      paymentId: payment?.id || "",
+      projectName: defaultName,
+      clientName,
+      clientBusiness,
+      clientEmail,
+      clientMobile,
+      websiteType,
+      expectedDeliveryDate: targetDate,
       stagingUrl: "",
       repositoryUrl: "",
       assignedLead: "ViBa Engineering Team",
-      internalNotes: `Requirements: ${app.businessDescription.substring(0, 200)}...`,
+      initialNotes: app?.businessDescription
+        ? `Customer requirements: ${app.businessDescription.substring(0, 200)}...`
+        : "Project initialized after quotation approval and advance payment confirmation.",
     });
     setProjectError(null);
     setShowProjectModal(true);
   };
 
-  // Save Project to Database
+  // Save Project
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingProject(true);
     setProjectError(null);
 
     try {
-      const res = await fetch("/api/admin/projects", {
+      const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...projectForm,
-          progressPercent: 10,
-        }),
+        body: JSON.stringify(projectForm),
       });
 
       const json = await res.json();
@@ -615,74 +817,128 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Toggle Project Milestone
-  const handleToggleMilestone = async (project: CustomerProject, milestoneId: string) => {
-    const updatedMilestones = project.milestones.map((m) =>
-      m.id === milestoneId ? { ...m, completed: !m.completed } : m
-    );
-    const completedCount = updatedMilestones.filter((m) => m.completed).length;
-    const progressPercent = Math.round((completedCount / updatedMilestones.length) * 100);
-
+  // Update Project Stage (The 6 Stages)
+  const handleUpdateProjectStage = async (projectId: string, newStage: ProjectStage) => {
     try {
-      const res = await fetch(`/api/admin/projects/${project.id}`, {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: newStage }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? json.data : p))
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to update project stage:", err);
+    }
+  };
+
+  // Update Expected Delivery Date
+  const handleUpdateExpectedDate = async (projectId: string, expectedDeliveryDate: string) => {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: { expectedDeliveryDate } }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setProjects((prev) =>
+            prev.map((p) => (p.id === projectId ? json.data : p))
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to update expected delivery date:", err);
+    }
+  };
+
+  // Add Progress Note
+  const handleAddProgressNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteModalProject || !noteTitle.trim() || !noteContent.trim()) return;
+
+    setIsSubmittingNote(true);
+    try {
+      const res = await fetch(`/api/projects/${noteModalProject.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          milestones: updatedMilestones,
-          progressPercent,
+          progressNote: {
+            title: noteTitle.trim(),
+            content: noteContent.trim(),
+          },
         }),
       });
 
       if (res.ok) {
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === project.id
-              ? { ...p, milestones: updatedMilestones, progressPercent }
-              : p
-          )
-        );
+        const json = await res.json();
+        if (json.success && json.data) {
+          setProjects((prev) =>
+            prev.map((p) => (p.id === noteModalProject.id ? json.data : p))
+          );
+          setNoteModalProject(null);
+          setNoteTitle("");
+          setNoteContent("");
+        }
       }
-    } catch {
-      // Ignored
+    } catch (err) {
+      console.error("Failed to add progress note:", err);
+    } finally {
+      setIsSubmittingNote(false);
     }
   };
 
-  // Update Project Status
-  const handleUpdateProjectStatus = async (projectId: string, newStatus: ProjectStatus) => {
+  // Add Shared Project File
+  const handleAddProjectFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fileModalProject || !fileName.trim() || !fileUrl.trim()) return;
+
+    setIsUploadingFile(true);
     try {
-      const res = await fetch(`/api/admin/projects/${projectId}`, {
-        method: "PATCH",
+      const res = await fetch(`/api/projects/${fileModalProject.id}/files`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          name: fileName.trim(),
+          url: fileUrl.trim(),
+          category: fileCategory,
+          size: 1024 * 1024 * 2,
+        }),
       });
 
       if (res.ok) {
-        setProjects((prev) =>
-          prev.map((p) => (p.id === projectId ? { ...p, status: newStatus } : p))
-        );
+        const json = await res.json();
+        if (json.success && json.data) {
+          setProjects((prev) =>
+            prev.map((p) => (p.id === fileModalProject.id ? json.data : p))
+          );
+          setFileModalProject(null);
+          setFileName("");
+          setFileUrl("");
+        }
       }
-    } catch {
-      // Ignored
+    } catch (err) {
+      console.error("Failed to add project file:", err);
+    } finally {
+      setIsUploadingFile(false);
     }
   };
 
-  // Update Quotation Status
-  const handleUpdateQuotationStatus = async (quoteId: string, newStatus: QuotationStatus) => {
-    try {
-      const res = await fetch(`/api/admin/quotations/${quoteId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (res.ok) {
-        setQuotations((prev) =>
-          prev.map((q) => (q.id === quoteId ? { ...q, status: newStatus } : q))
-        );
-      }
-    } catch {
-      // Ignored
-    }
+  // Copy Tracking Portal Link with Token
+  const copyTrackingLink = (projectId: string, token: string) => {
+    const url = `${window.location.origin}/projects/${projectId}?token=${token}`;
+    navigator.clipboard.writeText(url);
+    setCopiedProjectId(projectId);
+    setTimeout(() => setCopiedProjectId(null), 2500);
   };
 
   // ==========================================
@@ -705,7 +961,6 @@ export default function AdminDashboardPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-        {/* Glow ambient background */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-cyan-600/10 via-blue-600/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         <div className="w-full max-w-md relative z-10">
@@ -715,7 +970,7 @@ export default function AdminDashboardPage() {
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">ViBa Admin Portal</h1>
             <p className="text-slate-400 text-sm mt-1">
-              Restricted management console for customer applications & projects
+              Management console for quotations, payments & customer projects
             </p>
           </div>
 
@@ -813,7 +1068,7 @@ export default function AdminDashboardPage() {
             </Link>
           </div>
 
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs (Applications, Quotations, Payments, Projects) */}
           <nav className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setActiveTab("applications")}
@@ -824,7 +1079,7 @@ export default function AdminDashboardPage() {
               }`}
             >
               <Briefcase className="w-4 h-4" />
-              <span>Applications</span>
+              <span className="hidden sm:inline">Applications</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
                 {stats.total ?? applications.length}
               </span>
@@ -839,9 +1094,24 @@ export default function AdminDashboardPage() {
               }`}
             >
               <DollarSign className="w-4 h-4" />
-              <span>Quotations</span>
+              <span className="hidden sm:inline">Quotations</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
                 {quotations.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("payments")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                activeTab === "payments"
+                  ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Payments</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                {payments.length}
               </span>
             </button>
 
@@ -854,7 +1124,7 @@ export default function AdminDashboardPage() {
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Projects</span>
+              <span className="hidden sm:inline">Projects</span>
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
                 {projects.length}
               </span>
@@ -928,7 +1198,6 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {/* Website Type Filter */}
                 <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1">
                   <Filter className="w-3.5 h-3.5 text-slate-500" />
                   <label htmlFor={typeFilterId} className="sr-only">Filter by website type</label>
@@ -949,7 +1218,6 @@ export default function AdminDashboardPage() {
                   </select>
                 </div>
 
-                {/* Status Filter */}
                 <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1">
                   <Tag className="w-3.5 h-3.5 text-slate-500" />
                   <label htmlFor={statusFilterId} className="sr-only">Filter by status</label>
@@ -980,7 +1248,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Applications Table / Cards */}
+            {/* Applications Table */}
             {appsError && (
               <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -1080,11 +1348,11 @@ export default function AdminDashboardPage() {
         {/* ========================================================= */}
         {activeTab === "quotations" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-white">Client Quotations</h2>
+                <h2 className="text-lg font-bold text-white">Customer Quotations</h2>
                 <p className="text-xs text-slate-400">
-                  Prepare, price, and deliver official agency quotations for customer applications
+                  Itemized pricing: Selected Package, Development Charges, Annual Service & Add-ons
                 </p>
               </div>
               <button
@@ -1093,12 +1361,13 @@ export default function AdminDashboardPage() {
                     openQuotationBuilder(applications[0]);
                   } else {
                     setQuotationError("Please submit or select a customer application first.");
+                    setShowQuotationModal(true);
                   }
                 }}
-                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-sky-300 transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-sky-300 transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 w-fit"
               >
                 <Plus className="w-4 h-4" />
-                <span>Prepare New Quotation</span>
+                <span>Prepare Customer Quotation</span>
               </button>
             </div>
 
@@ -1112,88 +1381,272 @@ export default function AdminDashboardPage() {
                 <DollarSign className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <h3 className="text-base font-semibold text-slate-200">No quotations prepared yet</h3>
                 <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
-                  You can prepare custom quotations directly from any customer application.
+                  You can prepare custom quotations directly from any customer application with package, dev, and annual service breakdowns.
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {quotations.map((quote) => (
-                  <div
-                    key={quote.id}
-                    className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-mono text-xs text-cyan-400 font-semibold">{quote.id}</span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full border ${
-                            quote.status === "Approved"
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                              : quote.status === "Sent to Customer"
-                              ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
-                              : "bg-slate-800 text-slate-300 border-slate-700"
-                          }`}
-                        >
-                          {quote.status}
-                        </span>
-                      </div>
-
-                      <h3 className="text-base font-bold text-white">{quote.businessName || quote.customerName}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{quote.customerName} • {quote.email}</p>
-
-                      <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-1.5 text-xs text-slate-300">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Website Type:</span>
-                          <span className="font-medium text-slate-200">{quote.websiteType}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Timeline:</span>
-                          <span className="font-medium text-slate-200">{quote.estimatedTimelineWeeks} Weeks</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500">Deliverables:</span>
-                          <span className="font-medium text-slate-200">{quote.items?.length || 0} line items</span>
-                        </div>
-                        <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-slate-800">
-                          <span>Total Amount:</span>
-                          <span className="text-cyan-400 font-mono">
-                            {quote.currency === "INR" ? "₹" : "$"}{quote.totalAmount.toLocaleString()}
+                {quotations.map((quote) => {
+                  const curr = quote.currency === "INR" ? "₹" : "$";
+                  return (
+                    <div
+                      key={quote.id}
+                      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-mono text-xs text-cyan-400 font-semibold">{quote.id}</span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full border ${
+                              quote.status === "Approved"
+                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                : quote.status === "Sent to Customer"
+                                ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
+                                : "bg-slate-800 text-slate-300 border-slate-700"
+                            }`}
+                          >
+                            {quote.status}
                           </span>
                         </div>
+
+                        <h3 className="text-base font-bold text-white">{quote.businessName || quote.customerName}</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">{quote.customerName} • {quote.email}</p>
+
+                        <div className="mt-4 pt-3 border-t border-slate-800/80 space-y-1.5 text-xs text-slate-300">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Selected Package:</span>
+                            <span className="font-medium text-slate-200">{quote.selectedPackage?.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Dev Charges:</span>
+                            <span className="font-mono text-slate-300">
+                              {curr}{quote.developmentCharges?.amount?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Annual Service:</span>
+                            <span className="font-mono text-slate-300">
+                              {curr}{quote.annualServiceCharges?.amount?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-teal-300 pt-1 border-t border-slate-800">
+                            <span>Advance Required:</span>
+                            <span className="font-mono">
+                              {curr}{quote.breakdown?.advancePayment?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm font-bold text-white pt-1">
+                            <span>Total Amount:</span>
+                            <span className="text-cyan-400 font-mono">
+                              {curr}{quote.breakdown?.totalAmount?.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        {/* Direct link to customer portal & print PDF */}
+                        <Link
+                          href={`/quotations/${quote.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-medium border border-cyan-500/30 transition flex items-center gap-1.5"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Customer Portal & PDF</span>
+                        </Link>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              openProjectCreator(undefined, quote);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold border border-emerald-500/30 transition flex items-center gap-1"
+                            title="Start or track customer project"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>Track Project</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setActiveTab("payments");
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
+                          >
+                            View Payment
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                      <select
-                        value={quote.status}
-                        onChange={(e) =>
-                          handleUpdateQuotationStatus(quote.id, e.target.value as QuotationStatus)
-                        }
-                        className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-                      >
-                        <option value="Draft">Draft</option>
-                        <option value="Sent to Customer">Sent to Customer</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Revised">Revised</option>
-                        <option value="Declined">Declined</option>
-                      </select>
-
-                      <button
-                        onClick={() => window.print()}
-                        className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition"
-                      >
-                        Print / PDF
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* TAB 3: PROJECTS                                           */}
+        {/* TAB 3: PAYMENTS & VERIFICATION                            */}
+        {/* ========================================================= */}
+        {activeTab === "payments" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-white">Payment & Bank Reconciliation</h2>
+                <p className="text-xs text-slate-400">
+                  Verify customer UTR reference numbers, credit advance deposits, and manage billing state
+                </p>
+              </div>
+              <button
+                onClick={fetchPayments}
+                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition w-fit"
+                title="Refresh Payments"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoadingPayments ? "animate-spin text-cyan-400" : ""}`} />
+              </button>
+            </div>
+
+            {paymentActionMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center gap-2 ${
+                  paymentActionMessage.error
+                    ? "bg-rose-500/10 border border-rose-500/30 text-rose-300"
+                    : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                }`}
+              >
+                {paymentActionMessage.error ? (
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                )}
+                <span>{paymentActionMessage.text}</span>
+              </div>
+            )}
+
+            {/* Payments Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl">
+                <p className="text-slate-400 text-xs">Total Tracked Billings</p>
+                <p className="text-xl font-bold text-white mt-1">
+                  ₹{payments.reduce((s, p) => s + (p.totalAmount || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-slate-900 border border-teal-500/20 p-3.5 rounded-xl">
+                <p className="text-teal-400 text-xs">Advance Required</p>
+                <p className="text-xl font-bold text-teal-300 mt-1">
+                  ₹{payments.reduce((s, p) => s + (p.advanceRequired || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-slate-900 border border-emerald-500/20 p-3.5 rounded-xl">
+                <p className="text-emerald-400 text-xs">Verified Collected</p>
+                <p className="text-xl font-bold text-emerald-300 mt-1">
+                  ₹{payments.reduce((s, p) => s + (p.amountPaid || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="bg-slate-900 border border-amber-500/20 p-3.5 rounded-xl">
+                <p className="text-amber-400 text-xs">Pending Verification</p>
+                <p className="text-xl font-bold text-amber-300 mt-1">
+                  {payments.filter((p) => p.status.includes("Pending")).length} Records
+                </p>
+              </div>
+            </div>
+
+            {/* Payment Records Table */}
+            {isLoadingPayments ? (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-12 text-center">
+                <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-slate-400 text-sm">Loading payments from database...</p>
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-12 text-center">
+                <CreditCard className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                <h3 className="text-base font-semibold text-slate-200">No payment records found</h3>
+                <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
+                  Payment records are automatically initialized whenever a customer quotation is prepared.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                      <tr>
+                        <th className="py-3.5 px-4">Payment ID & Quote</th>
+                        <th className="py-3.5 px-4">Client</th>
+                        <th className="py-3.5 px-4">Total Amount</th>
+                        <th className="py-3.5 px-4">Advance</th>
+                        <th className="py-3.5 px-4">Amount Paid</th>
+                        <th className="py-3.5 px-4">Status</th>
+                        <th className="py-3.5 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                      {payments.map((pay) => {
+                        const curr = pay.currency === "INR" ? "₹" : "$";
+                        return (
+                          <tr key={pay.id} className="hover:bg-slate-800/40 transition">
+                            <td className="py-3.5 px-4 font-mono text-xs text-cyan-400">
+                              {pay.id}
+                              <div className="text-[10px] text-slate-500">
+                                Quote: {pay.quotationId}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-medium text-slate-100">{pay.businessName || pay.customerName}</div>
+                              <div className="text-xs text-slate-400">{pay.customerEmail}</div>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono font-medium text-white">
+                              {curr}{pay.totalAmount.toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-teal-300">
+                              {curr}{pay.advanceRequired.toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-emerald-400 font-semibold">
+                              {curr}{pay.amountPaid.toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium border ${getPaymentBadgeStyle(
+                                  pay.status
+                                )}`}
+                              >
+                                {pay.status}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {(pay.status === "Advance Paid" || pay.status === "Fully Paid") && (
+                                  <button
+                                    onClick={() => openProjectCreator(undefined, undefined, pay)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold border border-emerald-500/30 transition flex items-center gap-1"
+                                    title="Start Customer Project tracking"
+                                  >
+                                    <Layers className="w-3.5 h-3.5" />
+                                    <span>Track Project</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => setSelectedPayment(pay)}
+                                  className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-medium border border-cyan-500/30 transition"
+                                >
+                                  Manage Payment
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 4: PROJECTS                                           */}
         {/* ========================================================= */}
         {activeTab === "projects" && (
           <div className="space-y-6">
@@ -1237,109 +1690,234 @@ export default function AdminDashboardPage() {
                 {projects.map((proj) => (
                   <div
                     key={proj.id}
-                    className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition space-y-4"
+                    className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition space-y-4 shadow-xl"
                   >
-                    <div className="flex items-start justify-between">
+                    {/* Header: Title, Client, Badges */}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-mono text-xs text-cyan-400 font-semibold">{proj.id}</span>
                           <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
                             {proj.websiteType}
                           </span>
+                          {proj.isDeliveryApproved ? (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Delivery Approved
+                            </span>
+                          ) : (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                              Active Track
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-base font-bold text-white">{proj.projectName}</h3>
-                        <p className="text-xs text-slate-400">{proj.clientBusiness} • {proj.clientName}</p>
+                        <p className="text-xs text-slate-400">
+                          {proj.clientBusiness} • {proj.clientName} ({proj.clientEmail})
+                        </p>
                       </div>
 
-                      <select
-                        value={proj.status}
-                        onChange={(e) =>
-                          handleUpdateProjectStatus(proj.id, e.target.value as ProjectStatus)
-                        }
-                        className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-                      >
-                        <option value="Planning">Planning</option>
-                        <option value="In Development">In Development</option>
-                        <option value="Client Review">Client Review</option>
-                        <option value="Testing & QA">Testing & QA</option>
-                        <option value="Launched">Launched</option>
-                        <option value="On Hold">On Hold</option>
-                      </select>
+                      {/* Stage Selector (The 6 Stages) */}
+                      <div className="flex flex-col items-end gap-1">
+                        <label className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                          Current Stage
+                        </label>
+                        <select
+                          value={proj.currentStage}
+                          onChange={(e) =>
+                            handleUpdateProjectStage(proj.id, e.target.value as ProjectStage)
+                          }
+                          className="bg-slate-950 border border-cyan-500/40 rounded-xl px-3 py-1.5 text-xs font-semibold text-cyan-300 focus:outline-none focus:border-cyan-400 cursor-pointer shadow"
+                        >
+                          {PROJECT_STAGES_LIST.map((stage) => (
+                            <option key={stage} value={stage} className="bg-slate-900 text-slate-200">
+                              {stage}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Progress Bar with 6 Stages */}
                     <div>
-                      <div className="flex justify-between text-xs text-slate-400 mb-1">
-                        <span>Development Progress</span>
-                        <span className="font-mono text-cyan-400 font-semibold">{proj.progressPercent}%</span>
+                      <div className="flex justify-between text-xs text-slate-400 mb-1.5">
+                        <span className="font-medium text-slate-300">Stage Progress</span>
+                        <span className="font-mono text-cyan-400 font-semibold">{proj.stageProgressPercent}%</span>
                       </div>
-                      <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden p-0.5">
                         <div
-                          className="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full transition-all duration-300"
-                          style={{ width: `${proj.progressPercent}%` }}
+                          className="h-full bg-gradient-to-r from-cyan-500 via-sky-400 to-emerald-400 rounded-full transition-all duration-500"
+                          style={{ width: `${proj.stageProgressPercent}%` }}
                         />
                       </div>
                     </div>
 
-                    {/* Milestones Checklist */}
-                    <div className="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 space-y-2">
-                      <p className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                        Milestones & Tasks
-                      </p>
-                      <div className="space-y-1.5">
-                        {proj.milestones?.map((m: ProjectMilestone) => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => handleToggleMilestone(proj, m.id)}
-                            className="w-full flex items-center gap-2.5 text-left text-xs p-1.5 rounded hover:bg-slate-800/60 transition group"
-                          >
-                            {m.completed ? (
-                              <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-                            ) : (
-                              <Square className="w-4 h-4 text-slate-500 group-hover:text-slate-300 shrink-0" />
-                            )}
-                            <span
-                              className={`${
-                                m.completed ? "line-through text-slate-500" : "text-slate-200"
-                              }`}
-                            >
-                              {m.title}
-                            </span>
-                          </button>
-                        ))}
+                    {/* Target Delivery Date & Lead Engineer */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold mb-1">
+                          Expected Delivery Date
+                        </span>
+                        <input
+                          type="date"
+                          defaultValue={proj.expectedDeliveryDate || ""}
+                          onBlur={(e) => {
+                            if (e.target.value && e.target.value !== proj.expectedDeliveryDate) {
+                              handleUpdateExpectedDate(proj.id, e.target.value);
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold mb-1">
+                          Assigned Lead
+                        </span>
+                        <span className="text-slate-200 font-mono text-xs">{proj.assignedLead || "ViBa Engineering Lead"}</span>
                       </div>
                     </div>
 
-                    {/* URLs and Details */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-2 border-t border-slate-800/60">
-                      <div className="flex items-center gap-2">
-                        {proj.stagingUrl && (
-                          <a
-                            href={proj.stagingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-cyan-400 hover:underline"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Staging
-                          </a>
-                        )}
-                        {proj.repositoryUrl && (
-                          <a
-                            href={proj.repositoryUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-slate-400 hover:underline"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Repo
-                          </a>
-                        )}
+                    {/* Client Tracking Link & Share Portal */}
+                    <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 text-cyan-300 min-w-0">
+                        <Share2 className="w-4 h-4 shrink-0 text-cyan-400" />
+                        <span className="truncate font-mono text-[11px] text-cyan-200">
+                          /projects/{proj.id}?token={proj.accessToken?.substring(0, 8)}...
+                        </span>
                       </div>
-                      <span className="text-slate-500 font-mono text-[11px]">
-                        Target: {proj.targetLaunchDate || "TBD"}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => copyTrackingLink(proj.id, proj.accessToken)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition flex items-center gap-1"
+                        >
+                          {copiedProjectId === proj.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 text-slate-400" />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </button>
+                        <Link
+                          href={`/projects/${proj.id}?token=${proj.accessToken}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition flex items-center gap-1 shadow-md shadow-cyan-500/20"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Customer Portal</span>
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Collapsible Details: Progress Notes, Files, Feedback */}
+                    <div className="space-y-3 pt-2 border-t border-slate-800/80 text-xs">
+                      {/* Notes Summary & Add Button */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                          <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Progress Notes ({proj.progressNotes?.length || 0})</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNoteModalProject(proj);
+                            setNoteTitle("");
+                            setNoteContent("");
+                          }}
+                          className="px-2 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-[11px] font-semibold border border-cyan-500/30 transition flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add Note</span>
+                        </button>
+                      </div>
+
+                      {/* Display Latest Note */}
+                      {proj.progressNotes && proj.progressNotes.length > 0 && (
+                        <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800/80 text-[11px] space-y-1">
+                          <div className="flex items-center justify-between text-slate-400">
+                            <span className="font-semibold text-cyan-300">
+                              {proj.progressNotes[proj.progressNotes.length - 1].stage}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {new Date(proj.progressNotes[proj.progressNotes.length - 1].createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="font-medium text-slate-200">
+                            {proj.progressNotes[proj.progressNotes.length - 1].title}
+                          </p>
+                          <p className="text-slate-400 italic">
+                            &ldquo;{proj.progressNotes[proj.progressNotes.length - 1].content}&rdquo;
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Files Summary & Upload Button */}
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-200">
+                          <Paperclip className="w-3.5 h-3.5 text-teal-400" />
+                          <span>Shared Files ({proj.sharedFiles?.length || 0})</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFileModalProject(proj);
+                            setFileName("");
+                            setFileUrl("");
+                          }}
+                          className="px-2 py-0.5 rounded bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 text-[11px] font-semibold border border-teal-500/30 transition flex items-center gap-1"
+                        >
+                          <UploadCloud className="w-3 h-3" />
+                          <span>Share File</span>
+                        </button>
+                      </div>
+
+                      {/* Display Shared Files */}
+                      {proj.sharedFiles && proj.sharedFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {proj.sharedFiles.map((file) => (
+                            <a
+                              key={file.id}
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 text-[11px] text-slate-300 flex items-center gap-1.5 hover:text-cyan-400 transition"
+                            >
+                              <Paperclip className="w-3 h-3 text-slate-500" />
+                              <span className="max-w-[140px] truncate">{file.name}</span>
+                              <span className="text-[9px] text-slate-500 font-mono">({file.category})</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Customer Feedback section if present */}
+                      {proj.customerFeedback && proj.customerFeedback.length > 0 && (
+                        <div className="pt-2 border-t border-slate-800/60">
+                          <div className="flex items-center gap-1.5 font-semibold text-amber-300 mb-1.5">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Customer Feedback ({proj.customerFeedback.length})</span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {proj.customerFeedback.slice(-2).map((fb) => (
+                              <div
+                                key={fb.id}
+                                className="p-2 bg-amber-500/5 border border-amber-500/20 rounded-lg text-[11px]"
+                              >
+                                <div className="flex justify-between text-[10px] text-amber-400/80 mb-0.5">
+                                  <span>{fb.customerName} ({fb.stage})</span>
+                                  <span>{new Date(fb.submittedAt).toLocaleDateString()}</span>
+                                </div>
+                                <p className="text-slate-200">&ldquo;{fb.message}&rdquo;</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1350,12 +1928,11 @@ export default function AdminDashboardPage() {
       </main>
 
       {/* ========================================================= */}
-      {/* MODAL: COMPLETE APPLICATION DETAILS (ALL 15 FIELDS)       */}
+      {/* MODAL: APPLICATION DETAILS                                */}
       {/* ========================================================= */}
       {selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
           <div className="relative w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
-            {/* Modal Header */}
             <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -1378,7 +1955,6 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* Status Feedback Notification */}
             {statusMessage && (
               <div
                 className={`mx-6 mt-4 p-3 rounded-xl text-xs flex items-center gap-2 ${
@@ -1396,9 +1972,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* Modal Body: All 15 Fields */}
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto text-sm text-slate-300">
-              {/* Status Selector Bar */}
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <label htmlFor={appStatusSelectId} className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
@@ -1425,7 +1999,6 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              {/* Grid: 1-5 Customer Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1478,7 +2051,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Fields 6 - 7: Website Type & Package */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1497,7 +2069,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Field 8: Business Description */}
               <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
                   8. Business Description
@@ -1507,7 +2078,6 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              {/* Fields 9 - 10: Required Pages & Functionality */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1526,7 +2096,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Fields 11 - 12: Preferred Design & Reference Links */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1545,7 +2114,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Fields 13 - 14: Domain & Additional Requirements */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
@@ -1567,7 +2135,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Field 15: File and Image Uploads */}
               <div className="p-3.5 bg-slate-950/40 rounded-xl border border-slate-800/80">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
                   15. Customer Uploaded Files & References
@@ -1591,7 +2158,6 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        {/* Direct Download File Button */}
                         <a
                           href={file.url}
                           download={file.originalName || file.name}
@@ -1611,7 +2177,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Modal Footer Actions */}
             <div className="px-6 py-4 bg-slate-950/70 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-slate-500 font-mono">
                 Submitted: {selectedApp.createdAt ? new Date(selectedApp.createdAt).toLocaleString() : ""}
@@ -1646,14 +2211,15 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: PREPARE QUOTATION                                  */}
+      {/* MODAL: PREPARE CUSTOMER QUOTATION                         */}
+      {/* (All 4 Charge Categories + Advance & Remaining)           */}
       {/* ========================================================= */}
       {showQuotationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
           <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
             <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-white">Prepare Client Quotation</h3>
+                <h3 className="text-lg font-bold text-white">Prepare Customer Quotation</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   App: {quotationForm.applicationId} • {quotationForm.businessName}
                 </p>
@@ -1674,13 +2240,12 @@ export default function AdminDashboardPage() {
                 </div>
               )}
 
-              {/* Link Application Selector */}
+              {/* Target Application & Customer Details */}
               <div>
-                <label htmlFor={quoteAppSelectId} className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   Target Customer Application
                 </label>
                 <select
-                  id={quoteAppSelectId}
                   value={quotationForm.applicationId}
                   onChange={(e) => {
                     const target = applications.find((a) => a.id === e.target.value);
@@ -1692,6 +2257,7 @@ export default function AdminDashboardPage() {
                         businessName: target.businessName,
                         email: target.email,
                         mobileNumber: target.mobileNumber,
+                        businessAddress: target.businessAddress,
                         websiteType: target.websiteType,
                       });
                     }
@@ -1706,246 +2272,255 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
 
-              {/* Basic Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label htmlFor={quoteCustNameId} className="block text-xs text-slate-400 mb-1">Customer Name</label>
+                  <label className="block text-slate-400 mb-1">Customer Name</label>
                   <input
-                    id={quoteCustNameId}
                     type="text"
                     required
                     value={quotationForm.customerName}
                     onChange={(e) => setQuotationForm({ ...quotationForm, customerName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
                 <div>
-                  <label htmlFor={quoteBizNameId} className="block text-xs text-slate-400 mb-1">Business Name</label>
+                  <label className="block text-slate-400 mb-1">Business Name</label>
                   <input
-                    id={quoteBizNameId}
                     type="text"
                     required
                     value={quotationForm.businessName}
                     onChange={(e) => setQuotationForm({ ...quotationForm, businessName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={quoteEmailId} className="block text-xs text-slate-400 mb-1">Email</label>
-                  <input
-                    id={quoteEmailId}
-                    type="email"
-                    required
-                    value={quotationForm.email}
-                    onChange={(e) => setQuotationForm({ ...quotationForm, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={quoteMobileId} className="block text-xs text-slate-400 mb-1">Mobile</label>
-                  <input
-                    id={quoteMobileId}
-                    type="text"
-                    value={quotationForm.mobileNumber}
-                    onChange={(e) => setQuotationForm({ ...quotationForm, mobileNumber: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
               </div>
 
-              {/* Currency & Type */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label htmlFor={quoteWebTypeId} className="block text-xs text-slate-400 mb-1">Website Type</label>
-                  <select
-                    id={quoteWebTypeId}
-                    value={quotationForm.websiteType}
-                    onChange={(e) =>
-                      setQuotationForm({ ...quotationForm, websiteType: e.target.value as WebsiteType })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  >
-                    {WEBSITE_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor={quoteCurrencyId} className="block text-xs text-slate-400 mb-1">Currency</label>
-                  <select
-                    id={quoteCurrencyId}
-                    value={quotationForm.currency}
-                    onChange={(e) =>
-                      setQuotationForm({ ...quotationForm, currency: e.target.value as "INR" | "USD" })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  >
-                    <option value="INR">INR (₹)</option>
-                    <option value="USD">USD ($)</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor={quoteTimelineId} className="block text-xs text-slate-400 mb-1">Timeline (Weeks)</label>
-                  <input
-                    id={quoteTimelineId}
-                    type="number"
-                    min={1}
-                    max={52}
-                    value={quotationForm.estimatedTimelineWeeks}
-                    onChange={(e) =>
-                      setQuotationForm({ ...quotationForm, estimatedTimelineWeeks: Number(e.target.value) })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  />
+              {/* 1. Selected Package */}
+              <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
+                  1. Selected Package
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] text-slate-400 mb-1">Package Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={quotationForm.packageName}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, packageName: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Price (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={quotationForm.packagePrice}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, packagePrice: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Line Items */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Quotation Line Items
+              {/* 2. Development Charges */}
+              <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
+                  2. Development Charges
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] text-slate-400 mb-1">Engineering Scope</label>
+                    <input
+                      type="text"
+                      required
+                      value={quotationForm.developmentDescription}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, developmentDescription: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={quotationForm.developmentAmount}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, developmentAmount: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Annual Service Charges */}
+              <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block">
+                  3. Annual Service Charges (AMC / Cloud Hosting)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] text-slate-400 mb-1">Service & Hosting Scope</label>
+                    <input
+                      type="text"
+                      required
+                      value={quotationForm.annualServiceDescription}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, annualServiceDescription: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Amount (₹/Yr)</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={quotationForm.annualServiceAmount}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, annualServiceAmount: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Approved Additional Charges */}
+              <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                    4. Approved Additional Charges (Custom Add-ons)
                   </span>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setQuotationForm({
                         ...quotationForm,
-                        items: [
-                          ...quotationForm.items,
+                        additionalCharges: [
+                          ...quotationForm.additionalCharges,
                           {
-                            id: `item-${Date.now()}`,
-                            description: "Feature / Service line item",
-                            quantity: 1,
-                            unitPrice: 2000,
-                            total: 2000,
+                            id: `add-${Date.now()}`,
+                            description: "Extra page / custom integration",
+                            amount: 2000,
                           },
                         ],
-                      })
-                    }
+                      });
+                    }}
                     className="text-xs text-cyan-400 hover:underline flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Add Item
+                    Add Additional Charge
                   </button>
                 </div>
 
-                <div className="space-y-2">
-                  {quotationForm.items.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center gap-2"
+                {quotationForm.additionalCharges.map((item, idx) => (
+                  <div key={item.id} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add-on description"
+                      value={item.description}
+                      onChange={(e) => {
+                        const updated = [...quotationForm.additionalCharges];
+                        updated[idx].description = e.target.value;
+                        setQuotationForm({ ...quotationForm, additionalCharges: updated });
+                      }}
+                      className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="Amount"
+                      value={item.amount}
+                      onChange={(e) => {
+                        const updated = [...quotationForm.additionalCharges];
+                        updated[idx].amount = Number(e.target.value) || 0;
+                        setQuotationForm({ ...quotationForm, additionalCharges: updated });
+                      }}
+                      className="w-24 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuotationForm({
+                          ...quotationForm,
+                          additionalCharges: quotationForm.additionalCharges.filter((_, i) => i !== idx),
+                        });
+                      }}
+                      className="text-slate-500 hover:text-rose-400 p-1"
                     >
-                      <input
-                        type="text"
-                        placeholder="Deliverable Description"
-                        value={item.description}
-                        onChange={(e) => {
-                          const updated = [...quotationForm.items];
-                          updated[idx].description = e.target.value;
-                          setQuotationForm({ ...quotationForm, items: updated });
-                        }}
-                        className="flex-1 px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100"
-                      />
-                      <input
-                        type="number"
-                        min={1}
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const updated = [...quotationForm.items];
-                          const qty = Number(e.target.value) || 1;
-                          updated[idx].quantity = qty;
-                          updated[idx].total = qty * updated[idx].unitPrice;
-                          setQuotationForm({ ...quotationForm, items: updated });
-                        }}
-                        className="w-16 px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 text-center"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="Price"
-                        value={item.unitPrice}
-                        onChange={(e) => {
-                          const updated = [...quotationForm.items];
-                          const price = Number(e.target.value) || 0;
-                          updated[idx].unitPrice = price;
-                          updated[idx].total = updated[idx].quantity * price;
-                          setQuotationForm({ ...quotationForm, items: updated });
-                        }}
-                        className="w-24 px-2 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-100 font-mono text-right"
-                      />
-                      <span className="w-20 text-xs font-mono text-cyan-400 text-right">
-                        {item.total.toLocaleString()}
-                      </span>
-                      {quotationForm.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = quotationForm.items.filter((_, i) => i !== idx);
-                            setQuotationForm({ ...quotationForm, items: updated });
-                          }}
-                          className="p-1.5 text-slate-500 hover:text-rose-400 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Financial Calculation & Payment Terms */}
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1">Discount (₹)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={quotationForm.discount}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, discount: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1">Tax Rate (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={quotationForm.taxRatePercent}
+                      onChange={(e) => setQuotationForm({ ...quotationForm, taxRatePercent: Number(e.target.value) })}
+                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 mb-1">Advance Payment (%)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={quotationForm.advancePaymentPercentOrAmount}
+                      onChange={(e) =>
+                        setQuotationForm({
+                          ...quotationForm,
+                          advancePaymentPercentOrAmount: Number(e.target.value),
+                        })
+                      }
+                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Real-time Calculated Total & Payment Split */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Subtotal:</span>
+                    <span className="font-mono text-slate-200">₹{subtotalCalc.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Taxes & GST ({quotationForm.taxRatePercent}%):</span>
+                    <span className="font-mono text-slate-200">+₹{taxCalc.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-sm text-white pt-1 border-t border-slate-800">
+                    <span>Total Amount (Calculated):</span>
+                    <span className="text-cyan-400 font-mono">₹{totalCalc.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-teal-300 font-semibold pt-1">
+                    <span>Advance Payment Required:</span>
+                    <span className="font-mono">₹{advanceCalc.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Remaining Balance on Completion:</span>
+                    <span className="font-mono text-slate-200">₹{remainingCalc.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Totals Summary */}
-              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950/80 border border-slate-800 rounded-xl text-xs">
-                <div>
-                  <label htmlFor={quoteDiscountId} className="block text-slate-400 mb-1">Discount ({quotationForm.currency === "INR" ? "₹" : "$"})</label>
-                  <input
-                    id={quoteDiscountId}
-                    type="number"
-                    min={0}
-                    value={quotationForm.discount}
-                    onChange={(e) => setQuotationForm({ ...quotationForm, discount: Number(e.target.value) })}
-                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={quoteTaxRateId} className="block text-slate-400 mb-1">Tax Rate (%)</label>
-                  <input
-                    id={quoteTaxRateId}
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={quotationForm.taxRate}
-                    onChange={(e) => setQuotationForm({ ...quotationForm, taxRate: Number(e.target.value) })}
-                    className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100"
-                  />
-                </div>
-              </div>
-
-              {/* Terms & Scope */}
-              <div>
-                <label htmlFor={quoteDeliverablesId} className="block text-xs text-slate-400 mb-1">Scope of Deliverables</label>
-                <textarea
-                  id={quoteDeliverablesId}
-                  rows={2}
-                  value={quotationForm.scopeDeliverables}
-                  onChange={(e) => setQuotationForm({ ...quotationForm, scopeDeliverables: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label htmlFor={quoteTermsId} className="block text-xs text-slate-400 mb-1">Terms and Conditions</label>
-                <textarea
-                  id={quoteTermsId}
-                  rows={2}
-                  value={quotationForm.termsAndConditions}
-                  onChange={(e) => setQuotationForm({ ...quotationForm, termsAndConditions: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                />
-              </div>
-
-              {/* Submit Button */}
+              {/* Submit Buttons */}
               <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -1957,12 +2532,181 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isSavingQuotation}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-sky-300 transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-bold hover:from-cyan-300 hover:to-sky-300 transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
                 >
-                  {isSavingQuotation ? "Saving to Database..." : "Save & Generate Quotation"}
+                  {isSavingQuotation ? "Generating Quotation..." : "Save & Generate Customer Quotation"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: MANAGE PAYMENT & VERIFY TRANSACTION                */}
+      {/* ========================================================= */}
+      {selectedPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-cyan-400 font-bold">{selectedPayment.id}</span>
+                  <span
+                    className={`text-xs px-2.5 py-0.5 rounded-full border ${getPaymentBadgeStyle(
+                      selectedPayment.status
+                    )}`}
+                  >
+                    {selectedPayment.status}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-white mt-0.5">
+                  Manage Payment: {selectedPayment.businessName || selectedPayment.customerName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedPayment(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs">
+              {/* Financial Status */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                  <span className="text-slate-500 text-[10px] uppercase block">Total Agreed</span>
+                  <span className="text-sm font-bold text-white font-mono mt-0.5 block">
+                    ₹{selectedPayment.totalAmount.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-teal-500/20">
+                  <span className="text-teal-400 text-[10px] uppercase block">Advance Required</span>
+                  <span className="text-sm font-bold text-teal-300 font-mono mt-0.5 block">
+                    ₹{selectedPayment.advanceRequired.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-emerald-500/20">
+                  <span className="text-emerald-400 text-[10px] uppercase block">Amount Paid</span>
+                  <span className="text-sm font-bold text-emerald-300 font-mono mt-0.5 block">
+                    ₹{selectedPayment.amountPaid.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                  <span className="text-slate-500 text-[10px] uppercase block">Remaining Balance</span>
+                  <span className="text-sm font-bold text-slate-200 font-mono mt-0.5 block">
+                    ₹{selectedPayment.remainingAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Change Payment Status Dropdown */}
+              <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-semibold text-slate-300 uppercase tracking-wider block">
+                    Direct Payment Status Update
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Logged with admin email signature and timestamp
+                  </span>
+                </div>
+                <select
+                  value={selectedPayment.status}
+                  onChange={(e) =>
+                    handleDirectPaymentStatusUpdate(
+                      selectedPayment.quotationId,
+                      e.target.value as PaymentStatus
+                    )
+                  }
+                  className="bg-slate-900 border border-cyan-500/40 rounded-xl px-3 py-1.5 text-xs text-cyan-300 focus:outline-none"
+                >
+                  {ALL_PAYMENT_STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Transactions List with Admin Verification Actions */}
+              <div>
+                <span className="font-semibold text-slate-300 uppercase tracking-wider block mb-2">
+                  Customer Submitted Transactions (UTR / Bank Proofs)
+                </span>
+
+                {selectedPayment.transactions && selectedPayment.transactions.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedPayment.transactions.map((txn: PaymentTransaction) => (
+                      <div
+                        key={txn.id}
+                        className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-white">{txn.id}</span>
+                            <span className="capitalize text-slate-400">• {txn.type}</span>
+                            <span className="text-slate-400">• {txn.paymentMethod}</span>
+                          </div>
+                          <span className="font-mono text-sm font-bold text-cyan-300">
+                            ₹{txn.amount.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div className="p-2 bg-slate-900 rounded-lg font-mono text-[11px] flex justify-between items-center text-slate-300">
+                          <span>UTR: <strong className="text-white">{txn.transactionReference}</strong></span>
+                          <span>Date: {txn.transactionDate}</span>
+                        </div>
+
+                        {txn.customerNotes && (
+                          <p className="text-[11px] text-slate-400 italic">
+                            Remarks: &ldquo;{txn.customerNotes}&rdquo;
+                          </p>
+                        )}
+
+                        {/* Verification Action Buttons */}
+                        <div className="pt-2 border-t border-slate-900 flex items-center justify-between">
+                          {txn.verifiedByAdmin ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Verified by {txn.verifiedByEmail || "Accounts"}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2 w-full justify-end">
+                              <button
+                                type="button"
+                                disabled={verifyingTxnId === txn.id}
+                                onClick={() =>
+                                  handleVerifyTransaction(selectedPayment.quotationId, txn.id, "reject")
+                                }
+                                className="px-3 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs transition"
+                              >
+                                Decline
+                              </button>
+                              <button
+                                type="button"
+                                disabled={verifyingTxnId === txn.id}
+                                onClick={() =>
+                                  handleVerifyTransaction(selectedPayment.quotationId, txn.id, "approve")
+                                }
+                                className="px-3.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow flex items-center gap-1"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Verify & Credit Payment</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic p-4 bg-slate-950/40 rounded-xl text-center">
+                    No transactions submitted by customer yet.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1977,7 +2721,7 @@ export default function AdminDashboardPage() {
               <div>
                 <h3 className="text-lg font-bold text-white">Start Customer Project</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Launch production development tracking for this client
+                  Launch production development tracking with the 6 official project stages
                 </p>
               </div>
               <button
@@ -1997,11 +2741,10 @@ export default function AdminDashboardPage() {
               )}
 
               <div>
-                <label htmlFor={projNameId} className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
                   Project Title
                 </label>
                 <input
-                  id={projNameId}
                   type="text"
                   required
                   value={projectForm.projectName}
@@ -2010,61 +2753,57 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label htmlFor={projClientNameId} className="block text-xs text-slate-400 mb-1">Client Name</label>
+                  <label className="block text-slate-400 mb-1">Client Name</label>
                   <input
-                    id={projClientNameId}
                     type="text"
                     required
                     value={projectForm.clientName}
                     onChange={(e) => setProjectForm({ ...projectForm, clientName: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
                 <div>
-                  <label htmlFor={projClientBizId} className="block text-xs text-slate-400 mb-1">Business Name</label>
+                  <label className="block text-slate-400 mb-1">Business Name</label>
                   <input
-                    id={projClientBizId}
                     type="text"
                     required
                     value={projectForm.clientBusiness}
                     onChange={(e) => setProjectForm({ ...projectForm, clientBusiness: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
                 <div>
-                  <label htmlFor={projClientEmailId} className="block text-xs text-slate-400 mb-1">Email</label>
+                  <label className="block text-slate-400 mb-1">Email</label>
                   <input
-                    id={projClientEmailId}
                     type="email"
+                    required
                     value={projectForm.clientEmail}
                     onChange={(e) => setProjectForm({ ...projectForm, clientEmail: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
                 <div>
-                  <label htmlFor={projClientMobileId} className="block text-xs text-slate-400 mb-1">Mobile</label>
+                  <label className="block text-slate-400 mb-1">Mobile</label>
                   <input
-                    id={projClientMobileId}
                     type="text"
                     value={projectForm.clientMobile}
                     onChange={(e) => setProjectForm({ ...projectForm, clientMobile: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label htmlFor={projWebTypeId} className="block text-xs text-slate-400 mb-1">Website Type</label>
+                  <label className="block text-slate-400 mb-1">Website Type</label>
                   <select
-                    id={projWebTypeId}
                     value={projectForm.websiteType}
                     onChange={(e) =>
-                      setProjectForm({ ...projectForm, websiteType: e.target.value as WebsiteType })
+                      setProjectForm({ ...projectForm, websiteType: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   >
                     {WEBSITE_TYPES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -2072,76 +2811,24 @@ export default function AdminDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor={projStatusId} className="block text-xs text-slate-400 mb-1">Initial Status</label>
-                  <select
-                    id={projStatusId}
-                    value={projectForm.status}
-                    onChange={(e) =>
-                      setProjectForm({ ...projectForm, status: e.target.value as ProjectStatus })
-                    }
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  >
-                    <option value="Planning">Planning</option>
-                    <option value="In Development">In Development</option>
-                    <option value="Client Review">Client Review</option>
-                    <option value="Testing & QA">Testing & QA</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor={projLaunchDateId} className="block text-xs text-slate-400 mb-1">Target Launch Date</label>
+                  <label className="block text-slate-400 mb-1">Expected Delivery Date</label>
                   <input
-                    id={projLaunchDateId}
                     type="date"
-                    value={projectForm.targetLaunchDate}
-                    onChange={(e) => setProjectForm({ ...projectForm, targetLaunchDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
+                    required
+                    value={projectForm.expectedDeliveryDate}
+                    onChange={(e) => setProjectForm({ ...projectForm, expectedDeliveryDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
                   />
                 </div>
               </div>
 
               <div>
-                <label htmlFor={projLeadId} className="block text-xs text-slate-400 mb-1">Assigned Lead / Team</label>
-                <input
-                  id={projLeadId}
-                  type="text"
-                  value={projectForm.assignedLead}
-                  onChange={(e) => setProjectForm({ ...projectForm, assignedLead: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor={projStagingId} className="block text-xs text-slate-400 mb-1">Staging URL (Optional)</label>
-                  <input
-                    id={projStagingId}
-                    type="url"
-                    placeholder="https://staging.vibawebdev.com/client"
-                    value={projectForm.stagingUrl}
-                    onChange={(e) => setProjectForm({ ...projectForm, stagingUrl: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor={projRepoId} className="block text-xs text-slate-400 mb-1">Repository URL (Optional)</label>
-                  <input
-                    id={projRepoId}
-                    type="url"
-                    placeholder="https://github.com/viba-webdev/..."
-                    value={projectForm.repositoryUrl}
-                    onChange={(e) => setProjectForm({ ...projectForm, repositoryUrl: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor={projNotesId} className="block text-xs text-slate-400 mb-1">Internal Notes</label>
+                <label className="block text-slate-400 mb-1 text-xs">Initial Progress / Kickoff Notes</label>
                 <textarea
-                  id={projNotesId}
-                  rows={2}
-                  value={projectForm.internalNotes}
-                  onChange={(e) => setProjectForm({ ...projectForm, internalNotes: e.target.value })}
+                  rows={3}
+                  value={projectForm.initialNotes}
+                  onChange={(e) => setProjectForm({ ...projectForm, initialNotes: e.target.value })}
+                  placeholder="Kickoff notes visible on customer tracking portal..."
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100"
                 />
               </div>
@@ -2159,7 +2846,169 @@ export default function AdminDashboardPage() {
                   disabled={isSavingProject}
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-sky-300 transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
                 >
-                  {isSavingProject ? "Creating Project..." : "Launch Project"}
+                  {isSavingProject ? "Initializing Project..." : "Launch Project"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: ADD PROGRESS NOTE                                  */}
+      {/* ========================================================= */}
+      {noteModalProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Add Progress Note</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {noteModalProject.projectName} ({noteModalProject.currentStage})
+                </p>
+              </div>
+              <button
+                onClick={() => setNoteModalProject(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProgressNote} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Note Headline
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. High-fidelity UI mockups completed for review"
+                  value={noteTitle}
+                  onChange={(e) => setNoteTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Progress Details / Engineering Notes
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Detailed update for customer and development audit log..."
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModalProject(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingNote}
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+                >
+                  {isSubmittingNote ? "Publishing..." : "Publish Progress Note"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: UPLOAD / SHARE FILE                                */}
+      {/* ========================================================= */}
+      {fileModalProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white">Share Project File</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Share deliverables, designs or preview builds with {fileModalProject.clientName}
+                </p>
+              </div>
+              <button
+                onClick={() => setFileModalProject(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProjectFile} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Deliverable Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ViBa_Homepage_Design_v2.pdf"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Category
+                </label>
+                <select
+                  value={fileCategory}
+                  onChange={(e) =>
+                    setFileCategory(
+                      e.target.value as "Design Mockups" | "Preview Builds" | "Documentation" | "Source / Assets"
+                    )
+                  }
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100"
+                >
+                  <option value="Design Mockups">Design Mockups</option>
+                  <option value="Preview Builds">Preview Builds</option>
+                  <option value="Documentation">Documentation</option>
+                  <option value="Source / Assets">Source / Assets</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  File URL / Hosted Asset Link
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://..."
+                  value={fileUrl}
+                  onChange={(e) => setFileUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFileModalProject(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploadingFile}
+                  className="px-5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold transition shadow-lg shadow-teal-500/20 disabled:opacity-50"
+                >
+                  {isUploadingFile ? "Sharing..." : "Share File with Client"}
                 </button>
               </div>
             </form>

@@ -113,6 +113,7 @@ export interface CustomerProject {
 
 export interface CustomerApplication {
   id: string; // Unique Application ID e.g. VIBA-APP-2026-89412
+  userId?: string; // Authenticated Customer UID
   // 1. Customer name
   customerName: string;
   // 2. Business name
