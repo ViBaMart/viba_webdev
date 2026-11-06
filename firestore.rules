@@ -70,6 +70,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 6. Managed Customer Domains:
+    // - Read restricted strictly to the owning customer or administrative contexts
+    // - Writes blocked from untrusted client contexts (managed via /api/domains)
+    match /domains/{domainId} {
+      allow read: if isAuthenticated() && (
+        (resource.data.customerId != null && resource.data.customerId == request.auth.uid) ||
+        (resource.data.customerEmail != null && isCustomerEmail(resource.data.customerEmail))
+      );
+      allow write: if false;
+    }
+
     // Default Deny All: Any unspecified collections or wildcard paths are blocked
     match /{document=**} {
       allow read, write: if false;

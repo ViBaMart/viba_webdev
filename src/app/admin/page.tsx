@@ -16,6 +16,14 @@ import {
 import { QuotationRecord, AdditionalChargeItem } from "@/types/quotation";
 import { PaymentRecord, PaymentStatus, PaymentTransaction } from "@/types/payment";
 import {
+  DomainWithExpiryMeta,
+  DomainStats,
+  CustomerPaymentStatus,
+  DomainManagementStatus,
+  CreateDomainDTO,
+  RecordRenewalDTO,
+} from "@/types/domain";
+import {
   ShieldAlert,
   Search,
   Filter,
@@ -47,6 +55,10 @@ import {
   UploadCloud,
   Share2,
   Copy,
+  AlertTriangle,
+  History,
+  Calendar,
+  Pencil,
 } from "lucide-react";
 
 const ALL_APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -145,7 +157,9 @@ export default function AdminDashboardPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Active Dashboard Tab
-  const [activeTab, setActiveTab] = useState<"applications" | "quotations" | "payments" | "projects">("applications");
+  const [activeTab, setActiveTab] = useState<
+    "applications" | "quotations" | "payments" | "projects" | "domains"
+  >("applications");
 
   // Applications State
   const [applications, setApplications] = useState<CustomerApplication[]>([]);
@@ -282,6 +296,50 @@ export default function AdminDashboardPage() {
     initialNotes: "",
   });
 
+  // Domains State
+  const [domains, setDomains] = useState<DomainWithExpiryMeta[]>([]);
+  const [domainStats, setDomainStats] = useState<DomainStats | null>(null);
+  const [isLoadingDomains, setIsLoadingDomains] = useState(false);
+  const [domainSearchQuery, setDomainSearchQuery] = useState("");
+  const [domainExpiryFilter, setDomainExpiryFilter] = useState<"all" | "30_days" | "60_days" | "expired" | "active">("all");
+  const [domainPaymentFilter, setDomainPaymentFilter] = useState<string>("All");
+  const [domainStatusFilter, setDomainStatusFilter] = useState<string>("All");
+
+  const [showDomainModal, setShowDomainModal] = useState(false);
+  const [editingDomain, setEditingDomain] = useState<DomainWithExpiryMeta | null>(null);
+  const [domainForm, setDomainForm] = useState<CreateDomainDTO>({
+    customerName: "",
+    customerEmail: "",
+    domainName: "",
+    registrar: "GoDaddy",
+    registrationDate: "",
+    expiryDate: "",
+    registrationCost: 999,
+    renewalCost: 1299,
+    customerPaymentStatus: "Paid",
+    managementStatus: "Active",
+    currency: "INR",
+    autoRenewalConfigured: true,
+    dnsProvider: "Cloudflare",
+    notes: "",
+  });
+  const [isSavingDomain, setIsSavingDomain] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
+
+  // Domain Renewal Modal State
+  const [renewalModalDomain, setRenewalModalDomain] = useState<DomainWithExpiryMeta | null>(null);
+  const [renewalForm, setRenewalForm] = useState<RecordRenewalDTO>({
+    newExpiryDate: "",
+    renewalCost: 1299,
+    customerPaymentStatus: "Paid",
+    invoiceReference: "",
+    notes: "",
+  });
+  const [isSavingRenewal, setIsSavingRenewal] = useState(false);
+
+  // Domain History Modal State
+  const [historyModalDomain, setHistoryModalDomain] = useState<DomainWithExpiryMeta | null>(null);
+
   // Accessible IDs for Form Controls
   const searchInputId = useId();
   const typeFilterId = useId();
@@ -412,7 +470,32 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // 6. Synchronize Tab Data
+  // 6. Fetch Domains Helper
+  const fetchDomains = useCallback(async () => {
+    try {
+      setIsLoadingDomains(true);
+      const params = new URLSearchParams();
+      if (domainSearchQuery.trim()) params.set("search", domainSearchQuery.trim());
+      if (domainExpiryFilter !== "all") params.set("expiryFilter", domainExpiryFilter);
+      if (domainPaymentFilter !== "All") params.set("paymentStatus", domainPaymentFilter);
+      if (domainStatusFilter !== "All") params.set("status", domainStatusFilter);
+
+      const res = await fetch(`/api/domains?${params.toString()}`, { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setDomains(json.data || []);
+          if (json.stats) setDomainStats(json.stats);
+        }
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setIsLoadingDomains(false);
+    }
+  }, [domainSearchQuery, domainExpiryFilter, domainPaymentFilter, domainStatusFilter]);
+
+  // 7. Synchronize Tab Data
   useEffect(() => {
     if (!isAuthenticated) return;
     let isMounted = true;
@@ -481,12 +564,42 @@ export default function AdminDashboardPage() {
         .finally(() => {
           if (isMounted) setIsLoadingProjects(false);
         });
+    } else if (activeTab === "domains") {
+      const params = new URLSearchParams();
+      if (domainSearchQuery.trim()) params.set("search", domainSearchQuery.trim());
+      if (domainExpiryFilter !== "all") params.set("expiryFilter", domainExpiryFilter);
+      if (domainPaymentFilter !== "All") params.set("paymentStatus", domainPaymentFilter);
+      if (domainStatusFilter !== "All") params.set("status", domainStatusFilter);
+
+      fetch(`/api/domains?${params.toString()}`, { cache: "no-store" })
+        .then(async (res) => {
+          if (!isMounted) return;
+          const json = await res.json();
+          if (isMounted && json.success) {
+            setDomains(json.data || []);
+            if (json.stats) setDomainStats(json.stats);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsLoadingDomains(false);
+        });
     }
 
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, activeTab, searchQuery, selectedType, selectedStatus]);
+  }, [
+    isAuthenticated,
+    activeTab,
+    searchQuery,
+    selectedType,
+    selectedStatus,
+    domainSearchQuery,
+    domainExpiryFilter,
+    domainPaymentFilter,
+    domainStatusFilter,
+  ]);
 
   // Handle Admin Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -941,6 +1054,146 @@ export default function AdminDashboardPage() {
     setTimeout(() => setCopiedProjectId(null), 2500);
   };
 
+  // Open Create Domain Modal
+  const openCreateDomainModal = (preset?: { customerName?: string; customerEmail?: string; domainName?: string }) => {
+    const today = new Date().toISOString().split("T")[0];
+    const expiry = computeDefaultLaunchDate();
+    setEditingDomain(null);
+    setDomainForm({
+      customerName: preset?.customerName || "",
+      customerEmail: preset?.customerEmail || "",
+      domainName: preset?.domainName || "",
+      registrar: "GoDaddy",
+      registrationDate: today,
+      expiryDate: expiry,
+      registrationCost: 999,
+      renewalCost: 1299,
+      customerPaymentStatus: "Paid",
+      managementStatus: "Active",
+      currency: "INR",
+      autoRenewalConfigured: true,
+      dnsProvider: "Cloudflare",
+      notes: "",
+    });
+    setDomainError(null);
+    setShowDomainModal(true);
+  };
+
+  // Open Edit Domain Modal
+  const openEditDomainModal = (domain: DomainWithExpiryMeta) => {
+    setEditingDomain(domain);
+    setDomainForm({
+      customerName: domain.customerName,
+      customerEmail: domain.customerEmail || "",
+      customerId: domain.customerId || "",
+      applicationId: domain.applicationId || "",
+      domainName: domain.domainName,
+      registrar: domain.registrar,
+      registrationDate: domain.registrationDate,
+      expiryDate: domain.expiryDate,
+      registrationCost: domain.registrationCost,
+      renewalCost: domain.renewalCost,
+      customerPaymentStatus: domain.customerPaymentStatus,
+      managementStatus: domain.managementStatus,
+      currency: domain.currency,
+      autoRenewalConfigured: Boolean(domain.autoRenewalConfigured),
+      dnsProvider: domain.dnsProvider || domain.registrar,
+      notes: domain.notes || "",
+    });
+    setDomainError(null);
+    setShowDomainModal(true);
+  };
+
+  // Save Domain (Create or Update)
+  const handleSaveDomain = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingDomain(true);
+    setDomainError(null);
+
+    try {
+      const url = editingDomain ? `/api/domains/${editingDomain.id}` : "/api/domains";
+      const method = editingDomain ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(domainForm),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to save domain record.");
+      }
+
+      setShowDomainModal(false);
+      fetchDomains();
+    } catch (err) {
+      setDomainError(err instanceof Error ? err.message : "Error saving domain record.");
+    } finally {
+      setIsSavingDomain(false);
+    }
+  };
+
+  // Open Record Renewal Modal
+  const openRenewalModal = (domain: DomainWithExpiryMeta) => {
+    // Add 1 year to current expiry
+    const curr = new Date(domain.expiryDate);
+    curr.setFullYear(curr.getFullYear() + 1);
+    const nextYearDate = curr.toISOString().split("T")[0];
+
+    setRenewalModalDomain(domain);
+    setRenewalForm({
+      newExpiryDate: nextYearDate,
+      renewalCost: domain.renewalCost || 1299,
+      customerPaymentStatus: "Paid",
+      invoiceReference: "",
+      notes: `Manual renewal logged by admin at ${domain.registrar}`,
+    });
+  };
+
+  // Save Renewal
+  const handleSaveRenewal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renewalModalDomain) return;
+
+    setIsSavingRenewal(true);
+    try {
+      const res = await fetch(`/api/domains/${renewalModalDomain.id}/renew`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(renewalForm),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to record renewal.");
+      }
+
+      setRenewalModalDomain(null);
+      fetchDomains();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to record domain renewal.");
+    } finally {
+      setIsSavingRenewal(false);
+    }
+  };
+
+  // Delete Domain
+  const handleDeleteDomain = async (domain: DomainWithExpiryMeta) => {
+    if (!confirm(`Are you sure you want to remove ${domain.domainName} from ViBa management?`)) return;
+
+    try {
+      const res = await fetch(`/api/domains/${domain.id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to delete domain record.");
+      }
+      fetchDomains();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error deleting domain record.");
+    }
+  };
+
   // ==========================================
   // RENDER: Loading Authentication
   // ==========================================
@@ -1128,6 +1381,26 @@ export default function AdminDashboardPage() {
               <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
                 {projects.length}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("domains")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition ${
+                activeTab === "domains"
+                  ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">Domains</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                {domains.length}
+              </span>
+              {domainStats && domainStats.expiringSoon > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                  {domainStats.expiringSoon} urgent
+                </span>
+              )}
             </button>
           </nav>
 
@@ -1921,6 +2194,396 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 5: DOMAIN MANAGEMENT MODULE                           */}
+        {/* ========================================================= */}
+        {activeTab === "domains" && (
+          <div className="space-y-6">
+            {/* Top Bar: Title & Primary Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-cyan-400" />
+                  <span>Domain Portfolio Management</span>
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Track client domains, registrar accounts, renewal deadlines &amp; payment settlement statuses
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchDomains}
+                  disabled={isLoadingDomains}
+                  className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition flex items-center gap-1.5"
+                  title="Refresh domains"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingDomains ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openCreateDomainModal()}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-semibold hover:from-cyan-300 hover:to-sky-300 transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register Customer Domain</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Domain Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  Total Managed
+                </span>
+                <span className="text-2xl font-bold text-slate-100 mt-1 block">
+                  {domainStats?.totalDomains ?? domains.length}
+                </span>
+                <span className="text-[10px] text-slate-500 mt-0.5 block">Client domain names</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                <span className="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Expiring Soon
+                </span>
+                <span className="text-2xl font-bold text-amber-300 mt-1 block">
+                  {domainStats?.expiringSoon ?? 0}
+                </span>
+                <span className="text-[10px] text-amber-400/80 mt-0.5 block">Within next 30 days</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/20">
+                <span className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider block flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Expired
+                </span>
+                <span className="text-2xl font-bold text-rose-300 mt-1 block">
+                  {domainStats?.expired ?? 0}
+                </span>
+                <span className="text-[10px] text-rose-400/80 mt-0.5 block">Requires urgent recovery</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">
+                  Active &amp; Healthy
+                </span>
+                <span className="text-2xl font-bold text-emerald-300 mt-1 block">
+                  {domainStats?.activeDomains ?? 0}
+                </span>
+                <span className="text-[10px] text-emerald-400/80 mt-0.5 block">SSL &amp; DNS connected</span>
+              </div>
+
+              <div className="col-span-2 lg:col-span-1 p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
+                <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider block">
+                  Annual Renewal Cost
+                </span>
+                <span className="text-2xl font-bold text-cyan-300 mt-1 block">
+                  ₹{(domainStats?.totalAnnualRenewalCost ?? 0).toLocaleString("en-IN")}
+                </span>
+                <span className="text-[10px] text-cyan-400/80 mt-0.5 block">Projected registrar cost</span>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {/* Search query */}
+                <div className="md:col-span-2 relative">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search by domain, customer name, registrar, or notes..."
+                    value={domainSearchQuery}
+                    onChange={(e) => setDomainSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                  {domainSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setDomainSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Expiry filter */}
+                <div>
+                  <select
+                    value={domainExpiryFilter}
+                    onChange={(e) =>
+                      setDomainExpiryFilter(e.target.value as "all" | "30_days" | "60_days" | "expired" | "active")
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="all">All Expiry Deadlines</option>
+                    <option value="30_days">Expiring ≤ 30 Days (Urgent)</option>
+                    <option value="60_days">Expiring ≤ 60 Days</option>
+                    <option value="expired">Expired Domains</option>
+                    <option value="active">Active &gt; 60 Days</option>
+                  </select>
+                </div>
+
+                {/* Customer payment filter */}
+                <div>
+                  <select
+                    value={domainPaymentFilter}
+                    onChange={(e) => setDomainPaymentFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="All">All Payment Statuses</option>
+                    <option value="Paid">Customer Paid</option>
+                    <option value="Pending">Payment Pending</option>
+                    <option value="Overdue">Payment Overdue</option>
+                    <option value="Invoiced">Invoiced</option>
+                    <option value="Waived">Waived / Complementary</option>
+                  </select>
+                </div>
+
+                {/* Management status filter */}
+                <div>
+                  <select
+                    value={domainStatusFilter}
+                    onChange={(e) => setDomainStatusFilter(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="All">All Domain Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Expiring Soon">Expiring Soon</option>
+                    <option value="Expired">Expired</option>
+                    <option value="Pending Transfer">Pending Transfer</option>
+                    <option value="Transferred Out">Transferred Out</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Domain Listing / Cards */}
+            {isLoadingDomains ? (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-12 text-center">
+                <div className="w-8 h-8 border-2 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-slate-400 text-sm">Loading domain portfolio...</p>
+              </div>
+            ) : domains.length === 0 ? (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-12 text-center">
+                <Globe className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                <h3 className="text-base font-semibold text-slate-200">No domain records found</h3>
+                <p className="text-slate-500 text-sm max-w-md mx-auto mt-1">
+                  {domainSearchQuery || domainExpiryFilter !== "all" || domainPaymentFilter !== "All"
+                    ? "Try adjusting your search queries or filter selections."
+                    : "Track your clients' domains, registrars, and renewal expirations in one central console."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => openCreateDomainModal()}
+                  className="mt-4 px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Register First Domain</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {domains.map((d) => {
+                  const daysLeft = d.daysUntilExpiry;
+                  const isExp = d.isExpired;
+                  const isSoon = d.isExpiringSoon;
+
+                  // Status badge color
+                  const statusColors: Record<DomainManagementStatus, string> = {
+                    Active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+                    "Expiring Soon": "bg-amber-500/10 text-amber-300 border-amber-500/30",
+                    Expired: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+                    "Pending Transfer": "bg-purple-500/10 text-purple-400 border-purple-500/30",
+                    "Transferred Out": "bg-slate-800 text-slate-400 border-slate-700",
+                    Cancelled: "bg-slate-800 text-slate-500 border-slate-700",
+                  };
+
+                  // Payment badge color
+                  const paymentColors: Record<CustomerPaymentStatus, string> = {
+                    Paid: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+                    Pending: "bg-yellow-500/10 text-yellow-300 border-yellow-500/30",
+                    Overdue: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+                    Invoiced: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+                    Waived: "bg-slate-800 text-slate-400 border-slate-700",
+                  };
+
+                  return (
+                    <div
+                      key={d.id}
+                      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition space-y-4 shadow-xl flex flex-col justify-between"
+                    >
+                      {/* Card Header: Domain name, Statuses */}
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <a
+                                href={`https://${d.domainName}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-base font-bold text-white hover:text-cyan-400 flex items-center gap-1.5 transition font-mono"
+                              >
+                                {d.domainName}
+                                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                              </a>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                                {d.id}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                              <span className="text-slate-300 font-medium">Client:</span> {d.customerName}
+                              {d.customerEmail && (
+                                <span className="text-slate-500">({d.customerEmail})</span>
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span
+                              className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold ${
+                                statusColors[d.managementStatus] || statusColors.Active
+                              }`}
+                            >
+                              {d.managementStatus}
+                            </span>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+                                paymentColors[d.customerPaymentStatus] || paymentColors.Pending
+                              }`}
+                            >
+                              Client Payment: {d.customerPaymentStatus}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Expiry Tracking Badge */}
+                        <div
+                          className={`mt-3 p-2.5 rounded-xl border flex items-center justify-between text-xs font-medium ${
+                            isExp
+                              ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                              : isSoon
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                              : "bg-slate-950 border-slate-800 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isExp ? (
+                              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                            ) : isSoon ? (
+                              <Clock className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                            ) : (
+                              <Calendar className="w-4 h-4 text-cyan-400 shrink-0" />
+                            )}
+                            <span>
+                              {isExp
+                                ? `Expired on ${d.expiryDate} (${Math.abs(daysLeft)} days ago)`
+                                : isSoon
+                                ? `Urgent: Expires on ${d.expiryDate} (${daysLeft} days remaining)`
+                                : `Expires on ${d.expiryDate} (${daysLeft} days remaining)`}
+                            </span>
+                          </div>
+                          {d.autoRenewalConfigured && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                              Auto-Renew Active
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 9 Maintained Fields Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-3 pt-3 border-t border-slate-800/80 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Registrar</span>
+                            <span className="font-semibold text-slate-200 mt-0.5 block">{d.registrar}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Registered Date</span>
+                            <span className="font-mono text-slate-300 mt-0.5 block">{d.registrationDate}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Expiry Date</span>
+                            <span className="font-mono text-slate-300 mt-0.5 block">{d.expiryDate}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Registration Cost</span>
+                            <span className="font-semibold text-slate-200 mt-0.5 block">
+                              ₹{d.registrationCost.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Renewal Cost</span>
+                            <span className="font-semibold text-cyan-400 mt-0.5 block">
+                              ₹{d.renewalCost.toLocaleString("en-IN")} /yr
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider block">DNS Provider</span>
+                            <span className="text-slate-300 mt-0.5 block truncate">
+                              {d.dnsProvider || d.registrar}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Domain Notes if present */}
+                        {d.notes && (
+                          <p className="mt-3 text-[11px] text-slate-400 bg-slate-950/60 p-2 rounded-lg border border-slate-800/60 italic">
+                            &ldquo;{d.notes}&rdquo;
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Card Footer: Action Buttons */}
+                      <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openRenewalModal(d)}
+                            className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs font-semibold border border-cyan-500/30 transition flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Record Renewal</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHistoryModalDomain(d)}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition flex items-center gap-1"
+                            title="View customer renewal history"
+                          >
+                            <History className="w-3 h-3 text-slate-400" />
+                            <span>History ({d.renewalHistory?.length || 0})</span>
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditDomainModal(d)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                            title="Edit domain record"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDomain(d)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition"
+                            title="Delete domain record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -3012,6 +3675,604 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 1: ADD / EDIT CUSTOMER DOMAIN                       */}
+      {/* ========================================================= */}
+      {showDomainModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-cyan-400" />
+                  <span>{editingDomain ? "Edit Managed Domain" : "Register New Customer Domain"}</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Maintain domain registrar details, registration/renewal costs, and customer payment status
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDomainModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDomain} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {domainError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{domainError}</span>
+                </div>
+              )}
+
+              {/* 1. Customer Name & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Customer Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ramesh Sharma"
+                    value={domainForm.customerName}
+                    onChange={(e) => setDomainForm({ ...domainForm, customerName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Customer Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="client@company.com"
+                    value={domainForm.customerEmail || ""}
+                    onChange={(e) => setDomainForm({ ...domainForm, customerEmail: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* 2. Domain Name & Registrar */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Domain Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. mycompany.com"
+                    value={domainForm.domainName}
+                    onChange={(e) => setDomainForm({ ...domainForm, domainName: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Domain Registrar *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="registrar-suggestions"
+                    placeholder="e.g. GoDaddy, Namecheap, Cloudflare"
+                    value={domainForm.registrar}
+                    onChange={(e) => setDomainForm({ ...domainForm, registrar: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                  <datalist id="registrar-suggestions">
+                    <option value="GoDaddy" />
+                    <option value="Namecheap" />
+                    <option value="Cloudflare" />
+                    <option value="Google Domains" />
+                    <option value="Hostinger" />
+                    <option value="BigRock" />
+                    <option value="AWS Route 53" />
+                    <option value="Porkbun" />
+                  </datalist>
+                </div>
+              </div>
+
+              {/* 3. Registration Date & Expiry Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Registration Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={domainForm.registrationDate}
+                    onChange={(e) => setDomainForm({ ...domainForm, registrationDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Expiry Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={domainForm.expiryDate}
+                    onChange={(e) => setDomainForm({ ...domainForm, expiryDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* 4. Registration Cost & Renewal Cost */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Registration Cost (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    step={1}
+                    value={domainForm.registrationCost}
+                    onChange={(e) =>
+                      setDomainForm({ ...domainForm, registrationCost: Number(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Annual Renewal Cost (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    step={1}
+                    value={domainForm.renewalCost}
+                    onChange={(e) =>
+                      setDomainForm({ ...domainForm, renewalCost: Number(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* 5. Customer Payment Status & Domain Management Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Customer Payment Status *
+                  </label>
+                  <select
+                    value={domainForm.customerPaymentStatus}
+                    onChange={(e) =>
+                      setDomainForm({
+                        ...domainForm,
+                        customerPaymentStatus: e.target.value as CustomerPaymentStatus,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Overdue">Overdue</option>
+                    <option value="Invoiced">Invoiced</option>
+                    <option value="Waived">Waived / Complimentary</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Domain Management Status *
+                  </label>
+                  <select
+                    value={domainForm.managementStatus}
+                    onChange={(e) =>
+                      setDomainForm({
+                        ...domainForm,
+                        managementStatus: e.target.value as DomainManagementStatus,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Expiring Soon">Expiring Soon</option>
+                    <option value="Expired">Expired</option>
+                    <option value="Pending Transfer">Pending Transfer</option>
+                    <option value="Transferred Out">Transferred Out</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* DNS Provider & Notes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    DNS Provider (Nameservers)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Cloudflare DNS, GoDaddy DNS"
+                    value={domainForm.dnsProvider || ""}
+                    onChange={(e) => setDomainForm({ ...domainForm, dnsProvider: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div className="flex items-center pt-5">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(domainForm.autoRenewalConfigured)}
+                      onChange={(e) =>
+                        setDomainForm({ ...domainForm, autoRenewalConfigured: e.target.checked })
+                      }
+                      className="rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-0"
+                    />
+                    <span>Auto-Renewal configured at Registrar</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Administrative Notes / Access Details
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Registered via client's credit card; renewal due notice sent to client email on 1st of month"
+                  value={domainForm.notes || ""}
+                  onChange={(e) => setDomainForm({ ...domainForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDomainModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDomain}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-bold hover:from-cyan-300 hover:to-sky-300 transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+                >
+                  {isSavingDomain ? "Saving..." : editingDomain ? "Update Domain" : "Register Domain"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 2: RECORD DOMAIN RENEWAL                            */}
+      {/* ========================================================= */}
+      {renewalModalDomain && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-cyan-400" />
+                  <span>Record Domain Renewal</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Log renewal payment and extend expiration date in registry records
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRenewalModalDomain(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRenewal} className="p-6 space-y-4">
+              {/* Domain Overview Box */}
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Domain Name:</span>
+                  <span className="font-mono font-bold text-white">{renewalModalDomain.domainName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Customer:</span>
+                  <span className="text-slate-200">{renewalModalDomain.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Current Expiry:</span>
+                  <span className="font-mono text-amber-300">{renewalModalDomain.expiryDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Registrar:</span>
+                  <span className="text-slate-200">{renewalModalDomain.registrar}</span>
+                </div>
+              </div>
+
+              {/* New Expiry Date */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  New Extended Expiry Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={renewalForm.newExpiryDate}
+                  onChange={(e) => setRenewalForm({ ...renewalForm, newExpiryDate: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              {/* Renewal Cost & Customer Payment Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Renewal Cost (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    step={1}
+                    value={renewalForm.renewalCost}
+                    onChange={(e) =>
+                      setRenewalForm({ ...renewalForm, renewalCost: Number(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                    Customer Payment Status *
+                  </label>
+                  <select
+                    value={renewalForm.customerPaymentStatus}
+                    onChange={(e) =>
+                      setRenewalForm({
+                        ...renewalForm,
+                        customerPaymentStatus: e.target.value as CustomerPaymentStatus,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="Paid">Customer Paid</option>
+                    <option value="Pending">Payment Pending</option>
+                    <option value="Overdue">Payment Overdue</option>
+                    <option value="Invoiced">Invoiced</option>
+                    <option value="Waived">Waived / Complimentary</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Invoice Reference */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Invoice Reference / Receipt ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. INV-DOM-2026-042 or Registrar Order ID"
+                  value={renewalForm.invoiceReference || ""}
+                  onChange={(e) => setRenewalForm({ ...renewalForm, invoiceReference: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500 font-mono"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-semibold uppercase tracking-wider text-[11px]">
+                  Renewal Notes
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Renewed for 1 additional year via credit card on GoDaddy"
+                  value={renewalForm.notes || ""}
+                  onChange={(e) => setRenewalForm({ ...renewalForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRenewalModalDomain(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingRenewal}
+                  className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-cyan-500/20 disabled:opacity-50"
+                >
+                  {isSavingRenewal ? "Logging Renewal..." : "Confirm Renewal Log"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: CUSTOMER DOMAIN RENEWAL HISTORY                   */}
+      {/* ========================================================= */}
+      {historyModalDomain && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-slate-950/70 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <History className="w-4 h-4 text-cyan-400" />
+                  <span>Domain &amp; Renewal History</span>
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Timeline of all registered lifecycle events and manual renewals for this domain
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setHistoryModalDomain(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Domain Metadata Header */}
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-base font-bold text-white font-mono flex items-center gap-2">
+                      {historyModalDomain.domainName}
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Customer: <span className="text-slate-200 font-semibold">{historyModalDomain.customerName}</span>
+                      {historyModalDomain.customerEmail && (
+                        <span className="text-slate-500"> ({historyModalDomain.customerEmail})</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-semibold">
+                      {historyModalDomain.managementStatus}
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Registrar: <span className="text-slate-300 font-medium">{historyModalDomain.registrar}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-800/80 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">First Registered</span>
+                    <span className="font-mono text-slate-200">{historyModalDomain.registrationDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Current Expiry</span>
+                    <span className="font-mono text-cyan-300">{historyModalDomain.expiryDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Days Remaining</span>
+                    <span
+                      className={`font-semibold ${
+                        historyModalDomain.isExpired
+                          ? "text-rose-400"
+                          : historyModalDomain.isExpiringSoon
+                          ? "text-amber-400"
+                          : "text-emerald-400"
+                      }`}
+                    >
+                      {historyModalDomain.daysUntilExpiry} days
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Renewal Pipeline</span>
+                    <span className="font-semibold text-slate-200">
+                      ₹{historyModalDomain.renewalCost.toLocaleString("en-IN")} /yr
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Renewal History Timeline */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Renewal Audit Trail ({historyModalDomain.renewalHistory?.length || 0})</span>
+                </h5>
+
+                {!historyModalDomain.renewalHistory || historyModalDomain.renewalHistory.length === 0 ? (
+                  <div className="p-6 rounded-xl bg-slate-950/60 border border-slate-800 text-center">
+                    <History className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">No previous renewals recorded yet for this domain.</p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Use the &quot;Record Renewal&quot; button to log registrar extension events.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {historyModalDomain.renewalHistory
+                      .slice()
+                      .reverse()
+                      .map((rec) => (
+                        <div
+                          key={rec.id}
+                          className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2 text-xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] text-cyan-400 font-bold">{rec.id}</span>
+                              <span className="text-slate-400">
+                                Renewed on <span className="text-slate-200 font-semibold">{rec.renewalDate}</span>
+                              </span>
+                            </div>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                              Payment: {rec.customerPaymentStatus}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-400 pt-1">
+                            <div>
+                              <span>Validity Extended: </span>
+                              <span className="font-mono text-slate-200">
+                                {rec.previousExpiryDate} &rarr;{" "}
+                                <span className="text-emerald-300 font-bold">{rec.newExpiryDate}</span>
+                              </span>
+                            </div>
+                            <div>
+                              <span>Cost: </span>
+                              <span className="font-semibold text-slate-200">
+                                ₹{rec.cost.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <div>
+                              <span>Logged By: </span>
+                              <span className="font-mono text-slate-300">{rec.renewedBy}</span>
+                            </div>
+                          </div>
+
+                          {rec.invoiceReference && (
+                            <div className="text-[11px] text-slate-400">
+                              Invoice / Receipt:{" "}
+                              <span className="font-mono text-cyan-400">{rec.invoiceReference}</span>
+                            </div>
+                          )}
+
+                          {rec.notes && (
+                            <p className="text-[11px] text-slate-400 bg-slate-900/80 p-2 rounded border border-slate-800 italic">
+                              &ldquo;{rec.notes}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-6 py-3 bg-slate-950/70 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setHistoryModalDomain(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition"
+              >
+                Close History
+              </button>
+            </div>
           </div>
         </div>
       )}

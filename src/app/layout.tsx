@@ -44,11 +44,32 @@ export const metadata: Metadata = {
     title: `${AGENCY_CONFIG.name} | Modern Web & Cloud Development Agency`,
     description: AGENCY_CONFIG.tagline,
     siteName: AGENCY_CONFIG.name,
+    images: [
+      {
+        url: "/vb-monogram-full.png",
+        width: 1024,
+        height: 1024,
+        alt: `${AGENCY_CONFIG.name} Official VB Monogram`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: AGENCY_CONFIG.name,
     description: AGENCY_CONFIG.tagline,
+    images: ["/vb-monogram-full.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/vb-monogram.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   robots: {
     index: true,
