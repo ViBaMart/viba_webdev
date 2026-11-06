@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { VbLogo } from "@/components/common/VbLogo";
 import { Button } from "@/components/common/Button";
 import {
@@ -13,11 +14,13 @@ import {
 } from "lucide-react";
 
 export function Navbar() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
 
   useEffect(() => {
+    if (pathname?.startsWith("/demos")) return;
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
 
@@ -77,6 +80,10 @@ export function Navbar() {
       window.history.pushState(null, "", href);
     }
   };
+
+  if (pathname?.startsWith("/demos")) {
+    return null;
+  }
 
   return (
     <header

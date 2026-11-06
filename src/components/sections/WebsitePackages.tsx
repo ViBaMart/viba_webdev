@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   SERVICES_AND_PRICING_PACKAGES,
   ECOMMERCE_PACKAGES,
@@ -23,6 +24,8 @@ import {
   RefreshCw,
   Layers,
   ChevronDown,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 
 export function WebsitePackages() {
@@ -234,6 +237,20 @@ export function WebsitePackages() {
                     <span>Apply Now</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
+
+                  {/* View Live Demo Button */}
+                  <Link href="/demos/static-business" className="block w-full">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="w-full justify-center gap-1.5 font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-blue-600" />
+                      <span>View Live Static Demo</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             );
@@ -377,6 +394,20 @@ export function WebsitePackages() {
                     <span>Apply Now</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
+
+                  {/* View Live Demo Button */}
+                  <Link href="/demos/dynamic-business" className="block w-full">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="w-full justify-center gap-1.5 font-bold text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-blue-600" />
+                      <span>View Live Dynamic Demo</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             );
@@ -558,6 +589,20 @@ export function WebsitePackages() {
                     <span>Apply Now</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
+
+                  {/* View Live Demo Button */}
+                  <Link href="/demos/ecommerce" className="block w-full">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="w-full justify-center gap-1.5 font-bold text-xs text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>View Live E-Commerce Demo</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
               </Card>
             );

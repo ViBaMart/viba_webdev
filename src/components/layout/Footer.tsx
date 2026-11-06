@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { VbLogo } from "@/components/common/VbLogo";
 import { Button } from "@/components/common/Button";
@@ -16,7 +17,12 @@ import {
 } from "lucide-react";
 
 export function Footer() {
+  const pathname = usePathname();
   const currentYear = 2026;
+
+  if (pathname?.startsWith("/demos")) {
+    return null;
+  }
 
   const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();

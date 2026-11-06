@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/common/Badge";
 import { Button } from "@/components/common/Button";
 import {
@@ -12,6 +13,9 @@ import {
   Sparkles,
   ArrowRight,
   RefreshCw,
+  ExternalLink,
+  Database,
+  ShoppingBag,
 } from "lucide-react";
 
 interface DemoPreset {
@@ -169,8 +173,159 @@ export function WebsiteDemo() {
           </h2>
           <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
             Experience the design polish, fluid responsiveness, and sub-second performance of our websites
-            in real time. Switch between industries and screen viewports below.
+            in real time. Switch between industries and screen viewports below, or launch any of our three dedicated standalone working demonstrations.
           </p>
+        </div>
+
+        {/* Three Separate Working Website Demonstrations Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* Demo 1 */}
+          <div className="bg-white rounded-3xl border-2 border-stone-200 p-6 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  <Monitor className="h-3 w-3" />
+                  <span>Demo 1</span>
+                </span>
+                <span className="text-[11px] font-mono font-bold text-stone-500">Route: /demos/static-business</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-1">
+                Static Business Website
+              </h3>
+              <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                High-performance presentation site with zero server maintenance overhead. Built for architectural, legal, or consulting practices.
+              </p>
+              <div className="space-y-1.5 text-xs text-slate-700 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Home:</strong> Vision, stats, pillars & testimonials</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>About:</strong> Studio story, leadership & timeline</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Services:</strong> 6 disciplines & 4-phase methodology</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Gallery:</strong> Filterable projects with lightbox modal</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Contact:</strong> Interactive brief submission form</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/demos/static-business" className="block w-full">
+              <Button size="md" variant="primary" className="w-full justify-center gap-2 font-bold bg-stone-900 hover:bg-stone-800 text-amber-400 shadow-sm">
+                <span>Launch Static Demo</span>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Demo 2 */}
+          <div className="bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-sm hover:border-blue-500 hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  <Database className="h-3 w-3" />
+                  <span>Demo 2</span>
+                </span>
+                <span className="text-[11px] font-mono font-bold text-slate-500">Route: /demos/dynamic-business</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-1">
+                Dynamic Business Website
+              </h3>
+              <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                Cloud infrastructure platform with live client-side CMS, dynamic services catalog, cost calculator, and real-time inbox.
+              </p>
+              <div className="space-y-1.5 text-xs text-slate-700 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                  <span><strong>Home:</strong> Live telemetry terminal & dynamic services</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                  <span><strong>About:</strong> Cloud architecture, SRE team & SLA matrix</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                  <span><strong>Services:</strong> Catalog & interactive cost calculator</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                  <span><strong>Dynamic CMS:</strong> Edit banners, add services & view inbox</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-600 shrink-0" />
+                  <span><strong>Contact Form:</strong> Real-time dispatch into CMS Admin</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/demos/dynamic-business" className="block w-full">
+              <Button size="md" variant="primary" className="w-full justify-center gap-2 font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                <span>Launch Dynamic Demo</span>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Demo 3 */}
+          <div className="bg-white rounded-3xl border-2 border-emerald-200 p-6 shadow-sm hover:border-emerald-500 hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <ShoppingBag className="h-3 w-3" />
+                  <span>Demo 3</span>
+                </span>
+                <span className="text-[11px] font-mono font-bold text-slate-500">Route: /demos/ecommerce</span>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-1">
+                E-Commerce Storefront
+              </h3>
+              <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+                Complete online retail experience with dynamic catalog, specs modal, reactive shopping cart, coupon codes, and simulated checkout.
+              </p>
+              <div className="space-y-1.5 text-xs text-slate-700 mb-6">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Home:</strong> Seasonal banner, guarantees & trending picks</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Product Listing:</strong> Instant search, category & sort</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Product Details:</strong> Finish selector, stock & specs</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Shopping Cart:</strong> Drawer, quantity controls & coupon</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Checkout:</strong> 3-step checkout & verified receipt</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/demos/ecommerce" className="block w-full">
+              <Button size="md" variant="primary" className="w-full justify-center gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                <span>Launch E-Commerce Demo</span>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Live Simulator Preview Header */}
+        <div className="text-center max-w-xl mx-auto mb-6">
+          <span className="text-xs uppercase font-bold tracking-widest text-slate-400">
+            Interactive In-Page Viewport Simulation
+          </span>
         </div>
 
         {/* Demo Controls Bar */}
@@ -283,33 +438,50 @@ export function WebsiteDemo() {
         {/* Live Interactive Demo Viewport Window */}
         <div className="bg-slate-900 rounded-3xl p-3 sm:p-6 shadow-2xl border border-slate-800 flex flex-col items-center">
           {/* Simulated Browser URL Bar */}
-          <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-slate-800 px-2 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-red-500/80" />
-                <span className="h-3 w-3 rounded-full bg-amber-500/80" />
-                <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-              </div>
-              <div className="bg-slate-950 px-3 py-1 rounded-lg text-slate-400 font-mono text-[11px] border border-slate-800 flex items-center gap-2">
-                <span className="text-emerald-400 font-bold">https://</span>
-                <span>demo.vibawebdev.com/{selectedDemo.id}</span>
-              </div>
-            </div>
+          {(() => {
+            const liveDemoRoute =
+              selectedDemo.id === "corporate"
+                ? "/demos/static-business"
+                : selectedDemo.id === "ecommerce"
+                ? "/demos/ecommerce"
+                : "/demos/dynamic-business";
 
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-[11px] hidden md:inline">
-                Viewport Mode: <strong className="text-white uppercase">{viewport}</strong>
-              </span>
-              <button
-                type="button"
-                onClick={() => handleSimulateClick("Refreshed Demo State")}
-                className="p-1 rounded text-slate-400 hover:text-white"
-                title="Refresh preview"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
+            return (
+              <div className="w-full flex items-center justify-between pb-3 mb-3 border-b border-slate-800 px-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-full bg-red-500/80" />
+                    <span className="h-3 w-3 rounded-full bg-amber-500/80" />
+                    <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                  </div>
+                  <div className="bg-slate-950 px-3 py-1 rounded-lg text-slate-400 font-mono text-[11px] border border-slate-800 flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold">https://</span>
+                    <span>vibawebdev.com{liveDemoRoute}</span>
+                  </div>
+                  <Link
+                    href={liveDemoRoute}
+                    className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600/80 hover:bg-blue-600 text-white text-[11px] font-bold transition-colors shadow-xs"
+                  >
+                    <span>Launch Full Demo ↗</span>
+                  </Link>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 text-[11px] hidden md:inline">
+                    Viewport Mode: <strong className="text-white uppercase">{viewport}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSimulateClick("Refreshed Demo State")}
+                    className="p-1 rounded text-slate-400 hover:text-white"
+                    title="Refresh preview"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Interactive Simulation Notification */}
           {simulatedActionMessage && (
