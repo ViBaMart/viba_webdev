@@ -8,6 +8,11 @@ export interface WebsitePackage {
   tagline: string;
   price: string;
   priceDetail: string;
+  developmentCharges?: string;
+  annualServiceCharges?: string;
+  firstYearPayment?: string;
+  renewalCharges?: string;
+  serviceType?: "static_website" | "dynamic_website" | "ecommerce" | "custom_web_app";
   popular?: boolean;
   badge?: string;
   turnaround: string;
@@ -17,4 +22,5 @@ export interface WebsitePackage {
   deliverables: string[];
   techStack: string[];
 }
+
 

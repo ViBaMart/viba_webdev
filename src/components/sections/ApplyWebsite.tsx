@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
@@ -21,6 +21,8 @@ import {
   ArrowRight,
   Eye,
   Sparkles,
+  Tag,
+  X,
 } from "lucide-react";
 
 interface ApplicationFormState {
@@ -29,6 +31,8 @@ interface ApplicationFormState {
   company: string;
   phone: string;
   serviceType: InquiryServiceType;
+  selectedPackageName?: string;
+  selectedPackagePricing?: string;
   budgetRange: InquiryBudgetRange;
   timeline: string;
   existingUrl: string;
@@ -41,6 +45,8 @@ const initialApplicationState: ApplicationFormState = {
   company: "",
   phone: "",
   serviceType: "static_website",
+  selectedPackageName: undefined,
+  selectedPackagePricing: undefined,
   budgetRange: "under_5k",
   timeline: "2_to_4_weeks",
   existingUrl: "",
@@ -56,6 +62,33 @@ export function ApplyWebsite() {
     referenceId?: string;
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    const handlePackageSelect = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        packageId?: string;
+        packageName?: string;
+        serviceType?: InquiryServiceType;
+        pricingSummary?: string;
+      }>;
+      if (customEvent.detail) {
+        const { packageName, serviceType, pricingSummary } = customEvent.detail;
+        setFormData((prev) => ({
+          ...prev,
+          serviceType: serviceType || prev.serviceType,
+          selectedPackageName: packageName,
+          selectedPackagePricing: pricingSummary,
+          message:
+            prev.message && !prev.message.startsWith("Interested in")
+              ? prev.message
+              : `Interested in applying for the ${packageName || "website"} package (${pricingSummary || ""}). Please deliver our project technical proposal and fixed quote.`,
+        }));
+      }
+    };
+
+    window.addEventListener("viba-select-package", handlePackageSelect);
+    return () => window.removeEventListener("viba-select-package", handlePackageSelect);
+  }, []);
 
   const websiteTypes: {
     type: InquiryServiceType;
@@ -145,6 +178,7 @@ export function ApplyWebsite() {
         serviceType: formData.serviceType,
         budgetRange: formData.budgetRange,
         message: `[WEBSITE APPLICATION]
+Selected Package: ${formData.selectedPackageName || "Not specified"} ${formData.selectedPackagePricing ? `(${formData.selectedPackagePricing})` : ""}
 Website Type: ${formData.serviceType}
 Timeline: ${formData.timeline}
 Existing URL: ${formData.existingUrl || "None"}
@@ -252,6 +286,48 @@ Details: ${formData.message}`,
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Selected Package Banner (Automatically Filled from Pricing Section) */}
+                  {formData.selectedPackageName && (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50/70 to-blue-50 border-2 border-blue-600/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white font-bold shrink-0 shadow-xs">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                              Package Selected &amp; Pre-filled
+                            </span>
+                          </div>
+                          <span className="font-extrabold text-base text-slate-900 block mt-0.5">
+                            {formData.selectedPackageName}
+                          </span>
+                          {formData.selectedPackagePricing && (
+                            <span className="text-slate-600 text-xs block font-medium mt-0.5">
+                              {formData.selectedPackagePricing}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedPackageName: undefined,
+                            selectedPackagePricing: undefined,
+                          }))
+                        }
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-colors shadow-2xs self-end sm:self-center"
+                        title="Clear pre-filled package selection"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        <span>Change</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Step 1: Website Type Selection */}
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
