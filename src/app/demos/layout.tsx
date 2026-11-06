@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Monitor, Database, ShoppingBag, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowLeft, Monitor, Database, ShoppingBag, ExternalLink } from "lucide-react";
 
 export default function DemosLayout({
   children,
@@ -38,8 +38,6 @@ export default function DemosLayout({
       badge: "Cart & Checkout",
     },
   ];
-
-  const currentDemo = demos.find((d) => pathname?.includes(d.href)) || demos[0];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 font-sans antialiased text-slate-900">

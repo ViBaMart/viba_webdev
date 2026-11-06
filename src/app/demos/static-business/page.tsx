@@ -1,28 +1,22 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import {
   Compass,
   Building2,
   Layers,
-  Award,
-  Users,
   CheckCircle2,
   Clock,
   MapPin,
   Phone,
   Mail,
   ArrowRight,
-  ExternalLink,
   ChevronRight,
-  Filter,
   Eye,
   X,
   Send,
-  Sparkles,
   Shield,
-  Calendar,
   Check,
   Menu,
 } from "lucide-react";
@@ -122,8 +116,10 @@ const GALLERY_PROJECTS: GalleryProject[] = [
   },
 ];
 
+type StaticTab = "home" | "about" | "services" | "gallery" | "contact";
+
 export default function StaticBusinessDemoPage() {
-  const [activeTab, setActiveTab] = useState<"home" | "about" | "services" | "gallery" | "contact">("home");
+  const [activeTab, setActiveTab] = useState<StaticTab>("home");
   const [galleryFilter, setGalleryFilter] = useState<string>("all");
   const [selectedProject, setSelectedProject] = useState<GalleryProject | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -150,7 +146,7 @@ export default function StaticBusinessDemoPage() {
     setFormSubmitted(true);
   };
 
-  const navItems = [
+  const navItems: { id: StaticTab; label: string }[] = [
     { id: "home", label: "Home" },
     { id: "about", label: "About" },
     { id: "services", label: "Services" },
@@ -158,7 +154,7 @@ export default function StaticBusinessDemoPage() {
     { id: "contact", label: "Contact" },
   ];
 
-  const handleNavClick = (tabId: "home" | "about" | "services" | "gallery" | "contact") => {
+  const handleNavClick = (tabId: StaticTab) => {
     setActiveTab(tabId);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -192,7 +188,7 @@ export default function StaticBusinessDemoPage() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id as any)}
+                onClick={() => handleNavClick(item.id)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                   activeTab === item.id
                     ? "bg-stone-900 text-white shadow-xs"
@@ -230,7 +226,7 @@ export default function StaticBusinessDemoPage() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id as any)}
+                onClick={() => handleNavClick(item.id)}
                 className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold ${
                   activeTab === item.id
                     ? "bg-stone-900 text-white"

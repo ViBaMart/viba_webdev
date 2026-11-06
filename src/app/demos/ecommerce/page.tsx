@@ -1,14 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import {
   ShoppingBag,
   ShoppingCart,
   Search,
-  Filter,
   Star,
-  Check,
   Plus,
   Minus,
   Trash2,
@@ -18,14 +16,11 @@ import {
   RotateCcw,
   CreditCard,
   QrCode,
-  Tag,
   CheckCircle2,
   X,
-  ExternalLink,
   ChevronRight,
   Sparkles,
   Heart,
-  Share2,
   Eye,
   Menu,
 } from "lucide-react";
@@ -214,6 +209,38 @@ const PRODUCTS: Product[] = [
 
 const CART_STORAGE_KEY = "aurelia_ecommerce_cart_v1";
 
+type PaymentMethod = "card" | "upi" | "cod";
+
+function getInitialCart(): CartItem[] {
+  if (typeof window === "undefined") {
+    return [
+      {
+        product: PRODUCTS[0],
+        quantity: 1,
+        selectedColor: PRODUCTS[0].colors[0].name,
+      },
+    ];
+  }
+  try {
+    const saved = localStorage.getItem(CART_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return [
+    {
+      product: PRODUCTS[0],
+      quantity: 1,
+      selectedColor: PRODUCTS[0].colors[0].name,
+    },
+  ];
+}
+
 export default function EcommerceDemoPage() {
   const [activeView, setActiveView] = useState<"home" | "products" | "cart" | "checkout">("home");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -222,14 +249,8 @@ export default function EcommerceDemoPage() {
   const [sortBy, setSortBy] = useState<string>("featured");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Cart State
-  const [cart, setCart] = useState<CartItem[]>([
-    {
-      product: PRODUCTS[0],
-      quantity: 1,
-      selectedColor: PRODUCTS[0].colors[0].name,
-    },
-  ]);
+  // Cart State (lazily initialized from localStorage without cascading renders)
+  const [cart, setCart] = useState<CartItem[]>(getInitialCart);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -249,7 +270,7 @@ export default function EcommerceDemoPage() {
     state: "Karnataka",
     pincode: "560103",
     deliverySpeed: "standard", // standard or express
-    paymentMethod: "card", // card, upi, cod
+    paymentMethod: "card" as PaymentMethod, // card, upi, cod
     cardNumber: "4532 •••• •••• 8891",
     cardExpiry: "09/28",
     cardCvv: "•••",
@@ -264,23 +285,6 @@ export default function EcommerceDemoPage() {
     date: string;
   } | null>(null);
   const [isProcessingOrder, setIsProcessingOrder] = useState(false);
-
-  // Load cart from localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(CART_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setCart(parsed);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, []);
 
   // Save cart to localStorage
   const saveCart = (newCart: CartItem[]) => {
@@ -434,9 +438,8 @@ export default function EcommerceDemoPage() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
             <button
               onClick={() => handleNavigate("home")}
-              className={`hover:text-emerald-700 transition-colors ${
-                activeView === "home" ? "text-emerald-700 font-bold" : ""
-              }`}
+              className={`hover:text-emerald-700 transition-colors ${activeView === "home" ? "text-emerald-700 font-bold" : ""
+                }`}
             >
               Home
             </button>
@@ -445,9 +448,8 @@ export default function EcommerceDemoPage() {
                 setSelectedCategory("all");
                 handleNavigate("products");
               }}
-              className={`hover:text-emerald-700 transition-colors ${
-                activeView === "products" ? "text-emerald-700 font-bold" : ""
-              }`}
+              className={`hover:text-emerald-700 transition-colors ${activeView === "products" ? "text-emerald-700 font-bold" : ""
+                }`}
             >
               All Products ({PRODUCTS.length})
             </button>
@@ -905,11 +907,10 @@ export default function EcommerceDemoPage() {
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                          selectedCategory === cat.id
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${selectedCategory === cat.id
                             ? "bg-emerald-600 text-white shadow-xs"
                             : "text-slate-600 hover:text-slate-900"
-                        }`}
+                          }`}
                       >
                         {cat.label}
                       </button>
@@ -933,7 +934,7 @@ export default function EcommerceDemoPage() {
               {/* Active Search Notification */}
               {searchQuery && (
                 <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 text-xs">
-                  <span>Showing results matching "<strong>{searchQuery}</strong>"</span>
+                  <span>Showing results matching &ldquo;<strong>{searchQuery}</strong>&rdquo;</span>
                   <button
                     onClick={() => setSearchQuery("")}
                     className="text-emerald-700 font-bold hover:underline"
@@ -1132,11 +1133,10 @@ export default function EcommerceDemoPage() {
                         <button
                           key={c.name}
                           onClick={() => setModalColor(c.name)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                            modalColor === c.name
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${modalColor === c.name
                               ? "border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-600/20"
                               : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                          }`}
+                            }`}
                         >
                           <span
                             className="h-3.5 w-3.5 rounded-full border border-slate-300 shrink-0"
@@ -1344,11 +1344,10 @@ export default function EcommerceDemoPage() {
 
                 {couponMessage && (
                   <div
-                    className={`text-[11px] font-medium p-1.5 rounded-lg text-center ${
-                      couponMessage.success
+                    className={`text-[11px] font-medium p-1.5 rounded-lg text-center ${couponMessage.success
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-red-100 text-red-700"
-                    }`}
+                      }`}
                   >
                     {couponMessage.text}
                   </div>
@@ -1565,11 +1564,10 @@ export default function EcommerceDemoPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <label
-                        className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
-                          checkoutData.deliverySpeed === "standard"
+                        className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${checkoutData.deliverySpeed === "standard"
                             ? "border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-600/20"
                             : "border-slate-200 hover:border-slate-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <input
@@ -1588,11 +1586,10 @@ export default function EcommerceDemoPage() {
                       </label>
 
                       <label
-                        className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
-                          checkoutData.deliverySpeed === "express"
+                        className={`p-3.5 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${checkoutData.deliverySpeed === "express"
                             ? "border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-600/20"
                             : "border-slate-200 hover:border-slate-300"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <input
@@ -1620,22 +1617,21 @@ export default function EcommerceDemoPage() {
                     </h3>
 
                     <div className="flex flex-wrap gap-2 text-xs">
-                      {[
+                      {([
                         { id: "card", label: "Credit / Debit Card", icon: CreditCard },
                         { id: "upi", label: "Instant UPI / QR", icon: QrCode },
                         { id: "cod", label: "Cash on Delivery", icon: Truck },
-                      ].map((m) => {
+                      ] as { id: PaymentMethod; label: string; icon: React.ComponentType<{ className?: string }> }[]).map((m) => {
                         const Icon = m.icon;
                         return (
                           <button
                             key={m.id}
                             type="button"
-                            onClick={() => setCheckoutData({ ...checkoutData, paymentMethod: m.id as any })}
-                            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold border transition-all ${
-                              checkoutData.paymentMethod === m.id
+                            onClick={() => setCheckoutData({ ...checkoutData, paymentMethod: m.id })}
+                            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold border transition-all ${checkoutData.paymentMethod === m.id
                                 ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                                 : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                            }`}
+                              }`}
                           >
                             <Icon className="h-3.5 w-3.5" />
                             <span>{m.label}</span>

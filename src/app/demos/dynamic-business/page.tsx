@@ -1,36 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import {
   Server,
-  Cloud,
-  Cpu,
   ShieldCheck,
   Zap,
   Activity,
-  Layers,
   Settings,
   Plus,
   Trash2,
   CheckCircle,
-  AlertCircle,
   Bell,
   RefreshCw,
   Mail,
   Send,
-  Sliders,
-  Database,
   ArrowRight,
-  ExternalLink,
-  ChevronRight,
   Check,
   Clock,
   Terminal,
-  Lock,
   Menu,
   X,
-  SlidersHorizontal,
 } from "lucide-react";
 
 interface DynamicService {
@@ -119,53 +108,71 @@ const DEFAULT_TESTIMONIALS: DynamicTestimonial[] = [
 
 const STORAGE_KEY = "pulsetech_dynamic_data_v1";
 
+type DynamicTab = "home" | "about" | "services" | "cms" | "contact";
+type BannerType = "blue" | "emerald" | "amber";
+
+function generateUniqueId(prefix: string): string {
+  return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+interface SavedStorageData {
+  bannerText?: string;
+  bannerActive?: boolean;
+  bannerType?: BannerType;
+  services?: DynamicService[];
+  testimonials?: DynamicTestimonial[];
+  inquiries?: DynamicInquiry[];
+}
+
+function getInitialStorageData(): SavedStorageData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function DynamicBusinessDemoPage() {
-  const [activeTab, setActiveTab] = useState<"home" | "about" | "services" | "cms" | "contact">("home");
+  const [activeTab, setActiveTab] = useState<DynamicTab>("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Dynamic Content State
-  const [bannerText, setBannerText] = useState("🚀 PulseTech Q4 Update: Multi-Region Kubernetes Mesh engine now available for all enterprise tiers.");
-  const [bannerActive, setBannerActive] = useState(true);
-  const [bannerType, setBannerType] = useState<"blue" | "emerald" | "amber">("blue");
+  // Dynamic Content State - lazily initialized to prevent cascading renders
+  const [bannerText, setBannerText] = useState(
+    () => getInitialStorageData()?.bannerText || "🚀 PulseTech Q4 Update: Multi-Region Kubernetes Mesh engine now available for all enterprise tiers."
+  );
+  const [bannerActive, setBannerActive] = useState(
+    () => getInitialStorageData()?.bannerActive ?? true
+  );
+  const [bannerType, setBannerType] = useState<BannerType>(
+    () => getInitialStorageData()?.bannerType || "blue"
+  );
 
-  const [services, setServices] = useState<DynamicService[]>(DEFAULT_SERVICES);
-  const [testimonials, setTestimonials] = useState<DynamicTestimonial[]>(DEFAULT_TESTIMONIALS);
-  const [inquiries, setInquiries] = useState<DynamicInquiry[]>([
-    {
-      id: "INQ-901",
-      name: "Rohan Kapoor",
-      email: "rohan@quickpay.io",
-      company: "QuickPay Solutions",
-      service: "Kubernetes Cluster Auto-Scaling",
-      scale: "10M+ Requests / mo",
-      message: "We need zero-downtime migration from on-prem to AWS EKS next month.",
-      date: "Today, 10:45 AM",
-      status: "New",
-    },
-  ]);
-
-  // Load from localStorage if present
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.bannerText) setBannerText(parsed.bannerText);
-          if (parsed.bannerActive !== undefined) setBannerActive(parsed.bannerActive);
-          if (parsed.bannerType) setBannerType(parsed.bannerType);
-          if (parsed.services && Array.isArray(parsed.services)) setServices(parsed.services);
-          if (parsed.testimonials && Array.isArray(parsed.testimonials)) setTestimonials(parsed.testimonials);
-          if (parsed.inquiries && Array.isArray(parsed.inquiries)) setInquiries(parsed.inquiries);
-        }
-      } catch (err) {
-        console.error("Failed to load demo dynamic state", err);
-      }
-    }
-  }, []);
+  const [services, setServices] = useState<DynamicService[]>(
+    () => getInitialStorageData()?.services || DEFAULT_SERVICES
+  );
+  const [testimonials, setTestimonials] = useState<DynamicTestimonial[]>(
+    () => getInitialStorageData()?.testimonials || DEFAULT_TESTIMONIALS
+  );
+  const [inquiries, setInquiries] = useState<DynamicInquiry[]>(
+    () => getInitialStorageData()?.inquiries || [
+      {
+        id: "INQ-901",
+        name: "Rohan Kapoor",
+        email: "rohan@quickpay.io",
+        company: "QuickPay Solutions",
+        service: "Kubernetes Cluster Auto-Scaling",
+        scale: "10M+ Requests / mo",
+        message: "We need zero-downtime migration from on-prem to AWS EKS next month.",
+        date: "Today, 10:45 AM",
+        status: "New",
+      },
+    ]
+  );
 
   // Sync to localStorage
-  const saveStateToStorage = (updates: any) => {
+  const saveStateToStorage = (updates: SavedStorageData) => {
     if (typeof window !== "undefined") {
       try {
         const current = {
@@ -215,7 +222,7 @@ export default function DynamicBusinessDemoPage() {
     if (!newSvcTitle || !newSvcDesc) return;
 
     const newSvc: DynamicService = {
-      id: `svc-${Date.now()}`,
+      id: generateUniqueId("svc"),
       title: newSvcTitle,
       category: newSvcCategory,
       price: newSvcPrice,
@@ -300,8 +307,9 @@ export default function DynamicBusinessDemoPage() {
   const handleToggleInquiryStatus = (id: string) => {
     const updated = inquiries.map((inq) => {
       if (inq.id === id) {
-        const nextStatus = inq.status === "New" ? "In Review" : inq.status === "In Review" ? "Resolved" : "New";
-        return { ...inq, status: nextStatus as any };
+        const nextStatus: DynamicInquiry["status"] =
+          inq.status === "New" ? "In Review" : inq.status === "In Review" ? "Resolved" : "New";
+        return { ...inq, status: nextStatus };
       }
       return inq;
     });
@@ -315,7 +323,7 @@ export default function DynamicBusinessDemoPage() {
     saveStateToStorage({ inquiries: updated });
   };
 
-  const handleNavClick = (tab: "home" | "about" | "services" | "cms" | "contact") => {
+  const handleNavClick = (tab: DynamicTab) => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -368,7 +376,7 @@ export default function DynamicBusinessDemoPage() {
 
           {/* Nav Items */}
           <nav className="hidden md:flex items-center gap-1">
-            {[
+            {([
               { id: "home", label: "Home" },
               { id: "about", label: "About" },
               { id: "services", label: `Services (${services.length})` },
@@ -378,10 +386,10 @@ export default function DynamicBusinessDemoPage() {
                 badge: inquiries.filter((i) => i.status === "New").length > 0 ? "Inbox" : undefined,
               },
               { id: "contact", label: "Contact Form" },
-            ].map((item) => (
+            ] as { id: DynamicTab; label: string; badge?: string }[]).map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id as any)}
+                onClick={() => handleNavClick(item.id)}
                 className={`relative px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                   activeTab === item.id
                     ? "bg-slate-800 text-cyan-400 border border-slate-700 shadow-xs"
@@ -426,16 +434,16 @@ export default function DynamicBusinessDemoPage() {
         {/* Mobile dropdown */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-6 space-y-2">
-            {[
+            {([
               { id: "home", label: "Home" },
               { id: "about", label: "About" },
               { id: "services", label: `Services (${services.length})` },
               { id: "cms", label: `CMS Admin (${inquiries.length} Inquiries)` },
               { id: "contact", label: "Contact Form" },
-            ].map((item) => (
+            ] as { id: DynamicTab; label: string }[]).map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavClick(item.id as any)}
+                onClick={() => handleNavClick(item.id)}
                 className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold ${
                   activeTab === item.id
                     ? "bg-slate-800 text-cyan-400"
@@ -977,7 +985,7 @@ export default function DynamicBusinessDemoPage() {
                         </label>
                         <select
                           value={bannerType}
-                          onChange={(e) => setBannerType(e.target.value as any)}
+                          onChange={(e) => setBannerType(e.target.value as BannerType)}
                           className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
                         >
                           <option value="blue">Blue Accent</option>
@@ -1157,7 +1165,7 @@ export default function DynamicBusinessDemoPage() {
                           </div>
 
                           <div className="p-2 rounded-lg bg-slate-950 text-slate-300 text-[11px] italic">
-                            "{inq.message}"
+                            &ldquo;{inq.message}&rdquo;
                           </div>
 
                           <div className="text-[11px] text-cyan-400/90 font-mono">

@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Master Navy-to-Electric Cyan Brand Gradient (0° to 135° diagonal) -->
+    <linearGradient id="viba-brand-grad" x1="92" y1="96" x2="420" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0B132B" />
+      <stop offset="25%" stopColor="#1C3782" />
+      <stop offset="55%" stopColor="#1D4ED8" />
+      <stop offset="78%" stopColor="#0284C7" />
+      <stop offset="92%" stopColor="#06B6D4" />
+      <stop offset="100%" stopColor="#00F5FF" />
+    </linearGradient>
+
+    <!-- Deep Navy Gradient for Left V Stroke -->
+    <linearGradient id="v-stroke-grad" x1="92" y1="96" x2="276" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0F172A" />
+      <stop offset="35%" stopColor="#1E3A8A" />
+      <stop offset="70%" stopColor="#2563EB" />
+      <stop offset="100%" stopColor="#0284C7" />
+    </linearGradient>
+
+    <!-- Electric Cyan Glowing Accent Gradient for B Bowls & Coding Chevron -->
+    <linearGradient id="b-cyan-grad" x1="212" y1="96" x2="420" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#2563EB" />
+      <stop offset="40%" stopColor="#0284C7" />
+      <stop offset="75%" stopColor="#06B6D4" />
+      <stop offset="100%" stopColor="#00F5FF" />
+    </linearGradient>
+
+    <!-- Coding Bracket Accent Highlight Gradient -->
+    <linearGradient id="code-chevron-grad" x1="310" y1="220" x2="380" y2="292" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#38BDF8" />
+      <stop offset="50%" stopColor="#00F5FF" />
+      <stop offset="100%" stopColor="#A5F3FC" />
+    </linearGradient>
+  </defs>
+
+  <!-- 
+    ViBa Web Development Solutions - Official VB Monogram
+    Center-aligned in 512x512 Canvas (Bounding box: X: 92-420, Y: 96-416)
+    Pure vector glyph with transparent background.
+  -->
+  <g id="viba-vb-monogram">
+    <!-- 1. The Left V Stroke (Angles down into the shared vertical spine) -->
+    <path
+      d="M92 96 H156 L276 416 H212 L92 96 Z"
+      fill="url(#v-stroke-grad)"
+    />
+
+    <!-- 2. The Shared Center Spine (Vertical backbone uniting V and B) -->
+    <path
+      d="M212 96 H276 V416 H212 V96 Z"
+      fill="url(#viba-brand-grad)"
+    />
+
+    <!-- 3. The Letter B Bowls with Integrated Architectural Silhouette -->
+    <!-- Outer contour of the double bowls with precision geometric curvatures -->
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M276 96
+         H344
+         C384 96 412 122 412 162
+         C412 198 388 226 352 238
+         L324 246
+         L358 258
+         C398 272 420 302 420 344
+         C420 388 388 416 344 416
+         H276
+         V96 Z
+
+         /* Upper Counter of B - Modern D-Loop with smooth corners */
+         M276 150
+         V214
+         H338
+         C358 214 372 202 372 182
+         C372 162 358 150 338 150
+         H276 Z
+
+         /* Lower Counter of B - Spacious, balanced aerodynamic contour */
+         M276 288
+         V362
+         H344
+         C368 362 382 348 382 325
+         C382 302 368 288 344 288
+         H276 Z"
+      fill="url(#b-cyan-grad)"
+    />
+
+    <!-- 4. Subtle Coding-Inspired Element: The Precision Angle Bracket (Chevron '>') -->
+    <!-- Seamlessly nested into the central waist junction of B, symbolizing forward velocity & source code -->
+    <path
+      d="M326 230 
+         L364 256 
+         L326 282 
+         L342 294 
+         L392 256 
+         L342 218 
+         Z"
+      fill="url(#code-chevron-grad)"
+    />
+
+    <!-- 5. Micro Technology Vertex Dot at the base convergence point -->
+    <circle cx="244" cy="416" r="3.5" fill="#00F5FF" />
+  </g>
+</svg>

@@ -38,7 +38,7 @@ export function Navbar() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
   const leftNavLinks = [
     { label: "Home", href: "#home", id: "home" },

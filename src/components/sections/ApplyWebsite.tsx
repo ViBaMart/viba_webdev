@@ -21,7 +21,6 @@ import {
   ArrowRight,
   Eye,
   Sparkles,
-  Tag,
   X,
 } from "lucide-react";
 
