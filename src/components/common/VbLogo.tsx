@@ -19,20 +19,20 @@ export function VbLogo({
   variant = "badge",
 }: VbLogoProps) {
   const pixelDimensions = {
-    sm: 36,
-    md: 46,
-    lg: 58,
-    xl: 72,
+    sm: 32,
+    md: 40,
+    lg: 48,
+    xl: 60,
   }[size];
 
   return (
-    <div className={`inline-flex items-center gap-3 ${className}`}>
+    <div className={`inline-flex items-center gap-2.5 sm:gap-3 shrink-0 select-none ${className}`}>
       {/* VB Monogram Icon */}
       <div
-        className={`relative flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 overflow-hidden ${
+        className={`relative flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 overflow-hidden rounded-xl shadow-xs ${
           variant === "badge"
-            ? "rounded-2xl shadow-md shadow-blue-600/20 border border-blue-400/30"
-            : "rounded-xl"
+            ? "border border-blue-400/40 shadow-blue-500/10 ring-1 ring-blue-500/10"
+            : ""
         }`}
         style={{ width: `${pixelDimensions}px`, height: `${pixelDimensions}px` }}
       >
@@ -48,10 +48,10 @@ export function VbLogo({
 
       {/* Brand Typography */}
       {showText && (
-        <div className="flex flex-col text-left">
-          <div className="flex items-center gap-1.5">
+        <div className="flex flex-col text-left shrink-0">
+          <div className="flex items-center gap-1.5 leading-none">
             <span
-              className={`font-black tracking-tight leading-none ${
+              className={`font-black tracking-tight ${
                 size === "sm"
                   ? "text-base"
                   : size === "md"
@@ -63,15 +63,15 @@ export function VbLogo({
             >
               ViBa
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200/80 rounded px-1.5 py-0.5">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 border border-blue-200/80 rounded px-1.5 py-0.5">
               SOLUTIONS
             </span>
           </div>
           <span
-            className={`font-medium tracking-wide uppercase leading-tight ${
+            className={`hidden sm:block font-medium tracking-wide uppercase leading-tight mt-0.5 ${
               size === "sm"
                 ? "text-[9px]"
-                : "text-[10px] sm:text-[11px]"
+                : "text-[10px]"
             } ${subtextColor}`}
           >
             Web Development Solutions

@@ -42,24 +42,20 @@ export function Hero() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-transparent pointer-events-none -z-10" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Prominent Center VB Merged Logo Crest */}
+        {/* Top Agency Badge Pill */}
         <div className="flex flex-col items-center justify-center text-center mb-8">
-          <div className="inline-flex items-center gap-2 p-1.5 pr-4 pl-2 rounded-full bg-blue-50 border border-blue-200/80 shadow-2xs mb-4">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-[11px] font-bold">
-              VB
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-blue-50/90 border border-blue-200/80 shadow-xs hover:border-blue-300 transition-colors">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md overflow-hidden shrink-0">
+              <VbLogo size="sm" variant="plain" showText={false} />
             </span>
-            <span className="text-xs font-semibold text-blue-900">
+            <span className="text-xs font-bold text-blue-950 tracking-tight">
               ViBa Web Development Solutions
             </span>
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
-          </div>
-
-          <div className="p-3 bg-white rounded-3xl border border-blue-100 shadow-lg shadow-blue-500/10 mb-4 inline-block">
-            <VbLogo size="xl" variant="badge" showText={false} />
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700">
-            <span>Verified High-Performance Web Engineering</span>
+            <span className="hidden sm:inline text-blue-300">•</span>
+            <span className="hidden sm:inline text-xs font-semibold text-blue-700">
+              Verified Web Engineering
+            </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse ml-0.5" />
           </div>
         </div>
 

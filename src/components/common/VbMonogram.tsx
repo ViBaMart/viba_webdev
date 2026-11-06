@@ -19,27 +19,31 @@ interface VbMonogramProps {
  */
 export function VbMonogram({
   className = "",
-  size = 64,
+  size,
   title = "ViBa Web Development Solutions VB Monogram",
   variant = "full",
 }: VbMonogramProps) {
-  const pixelSize = typeof size === "number" ? size : parseInt(String(size), 10) || 64;
+  const defaultSize = size ? (typeof size === "number" ? size : parseInt(String(size), 10) || 48) : 48;
   const src = variant === "transparent" ? "/vb-monogram.png" : "/vb-monogram-full.png";
 
   return (
     <div
       className={`relative inline-flex items-center justify-center shrink-0 overflow-hidden rounded-xl ${className}`}
-      style={{
-        width: typeof size === "number" ? `${size}px` : size,
-        height: typeof size === "number" ? `${size}px` : size,
-      }}
+      style={
+        size
+          ? {
+              width: typeof size === "number" ? `${size}px` : size,
+              height: typeof size === "number" ? `${size}px` : size,
+            }
+          : undefined
+      }
       title={title}
     >
       <Image
         src={src}
         alt={title}
-        width={pixelSize}
-        height={pixelSize}
+        width={defaultSize}
+        height={defaultSize}
         className="w-full h-full object-contain"
         priority
       />

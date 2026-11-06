@@ -42,26 +42,12 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [pathname]);
 
-  const leftNavLinks = [
-    { label: "Home", href: "#home", id: "home" },
-    { label: "About Us", href: "#about", id: "about" },
-    { label: "Our Services", href: "#services", id: "services" },
-  ];
-
-  const rightNavLinks = [
-    { label: "Pricing", href: "#pricing", id: "pricing" },
-    { label: "Website Demo", href: "#demo", id: "demo" },
-    { label: "Apply for Website", href: "#apply", id: "apply" },
-    { label: "Contact Us", href: "#contact", id: "contact" },
-  ];
-
-  const allNavLinks = [
+  const navLinks = [
     { label: "Home", href: "#home", id: "home" },
     { label: "About Us", href: "#about", id: "about" },
     { label: "Our Services", href: "#services", id: "services" },
     { label: "Pricing", href: "#pricing", id: "pricing" },
     { label: "Website Demo", href: "#demo", id: "demo" },
-    { label: "Apply for Website", href: "#apply", id: "apply" },
     { label: "Contact Us", href: "#contact", id: "contact" },
   ];
 
@@ -100,7 +86,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span className="hidden md:inline-flex items-center gap-1.5 text-blue-100 text-[11px]">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            Specialized Next.js, React & Cloud Solutions • 98+ Lighthouse Performance Guaranteed
+            Specialized Next.js, React &amp; Cloud Solutions • 98+ Lighthouse Performance Guaranteed
           </span>
           <span className="mx-auto md:mx-0 text-[11px] sm:text-xs">
             Accepting New Website Development Clients for Q4/Q1
@@ -126,131 +112,79 @@ export function Navbar() {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center justify-between">
-          {/* Desktop Left Navigation (Home, About Us, Our Services) */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 flex-1 justify-start">
-            {leftNavLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.href}
-                onClick={(e) => handleLinkClick(e, link.href)}
-                className={`text-sm font-semibold transition-colors py-1 relative ${
-                  activeSection === link.id
-                    ? "text-blue-600 font-bold"
-                    : "text-slate-700 hover:text-blue-600"
-                }`}
-              >
-                {link.label}
-                {activeSection === link.id && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
-                )}
-              </a>
-            ))}
-          </nav>
-
-          {/* Center Brand: VB Merged Logo In The Center */}
-          <div className="flex items-center justify-center shrink-0 px-2 lg:px-6">
+        <div className="flex h-20 items-center justify-between gap-4">
+          {/* 1. Left: Brand Logo & Title */}
+          <div className="flex items-center shrink-0">
             <a
               href="#home"
               onClick={(e) => handleLinkClick(e, "#home")}
-              className="group flex flex-col sm:flex-row items-center gap-2.5 transition-transform hover:scale-[1.02]"
+              className="group flex items-center gap-2.5 transition-transform hover:opacity-95"
               aria-label="ViBa Web Development Solutions - Home"
             >
               <VbLogo
                 size="md"
                 variant="badge"
                 showText={true}
-                textColor="text-slate-900 group-hover:text-blue-700 transition-colors"
+                textColor="text-slate-900 group-hover:text-blue-600 transition-colors"
                 subtextColor="text-slate-500 font-semibold"
               />
             </a>
           </div>
 
-          {/* Desktop Right Navigation & Action Buttons */}
-          <div className="hidden lg:flex items-center gap-4 xl:gap-6 flex-1 justify-end">
-            <nav className="flex items-center gap-5 xl:gap-6">
-              {rightNavLinks.slice(0, 2).map((link) => (
-                <a
-                  key={link.id}
-                  href={link.href}
-                  onClick={(e) => handleLinkClick(e, link.href)}
-                  className={`text-sm font-semibold transition-colors py-1 relative ${
-                    activeSection === link.id
-                      ? "text-blue-600 font-bold"
-                      : "text-slate-700 hover:text-blue-600"
-                  }`}
-                >
-                  {link.label}
-                  {activeSection === link.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
-                  )}
-                </a>
-              ))}
+          {/* 2. Center: Desktop Main Navigation */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+            {navLinks.map((link) => (
               <a
-                href="#contact"
-                onClick={(e) => handleLinkClick(e, "#contact")}
-                className={`text-sm font-semibold transition-colors py-1 relative ${
-                  activeSection === "contact"
-                    ? "text-blue-600 font-bold"
-                    : "text-slate-700 hover:text-blue-600"
+                key={link.id}
+                href={link.href}
+                onClick={(e) => handleLinkClick(e, link.href)}
+                className={`px-3 py-2 rounded-xl text-xs xl:text-sm font-semibold transition-all relative ${
+                  activeSection === link.id
+                    ? "text-blue-600 bg-blue-50/80 font-bold"
+                    : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
                 }`}
               >
-                Contact Us
+                {link.label}
               </a>
-            </nav>
+            ))}
+          </nav>
 
-            {/* Clear Action Buttons */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-              <a
-                href="#demo"
-                onClick={(e) => handleLinkClick(e, "#demo")}
+          {/* 3. Right: Action Buttons (Client Portal & Apply) */}
+          <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+            <Link href="/customer">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 border-slate-200 text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-semibold text-xs xl:text-sm"
               >
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 font-semibold"
-                >
-                  <Eye className="h-3.5 w-3.5 text-blue-600" />
-                  <span>View Demo</span>
-                </Button>
-              </a>
+                <User className="h-3.5 w-3.5 text-blue-600" />
+                <span>Client Portal</span>
+              </Button>
+            </Link>
 
-              <a
-                href="#apply"
-                onClick={(e) => handleLinkClick(e, "#apply")}
+            <a
+              href="#apply"
+              onClick={(e) => handleLinkClick(e, "#apply")}
+            >
+              <Button
+                size="sm"
+                variant="primary"
+                className="gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-sm shadow-blue-500/20 font-semibold text-xs xl:text-sm"
               >
-                <Button
-                  size="sm"
-                  variant="primary"
-                  className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/20 font-semibold"
-                >
-                  <FileCheck className="h-3.5 w-3.5" />
-                  <span>Apply for Website</span>
-                </Button>
-              </a>
-
-              <Link href="/customer">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 border-slate-300 text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-semibold"
-                >
-                  <User className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Client Portal</span>
-                </Button>
-              </Link>
-            </div>
+                <FileCheck className="h-3.5 w-3.5" />
+                <span>Apply for Website</span>
+              </Button>
+            </a>
           </div>
 
-          {/* Mobile Right Icons & Hamburger */}
+          {/* 4. Mobile Right Controls (Compact Apply + Hamburger) */}
           <div className="flex lg:hidden items-center gap-2">
             <a
               href="#apply"
               onClick={(e) => handleLinkClick(e, "#apply")}
-              className="sm:inline-flex hidden"
             >
-              <Button size="sm" variant="primary" className="text-xs px-2.5 py-1.5 gap-1 bg-blue-600">
-                <FileCheck className="h-3 w-3" />
+              <Button size="sm" variant="primary" className="text-xs px-3 py-1.5 gap-1 bg-blue-600">
+                <FileCheck className="h-3.5 w-3.5" />
                 <span>Apply</span>
               </Button>
             </a>
@@ -258,11 +192,11 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center rounded-xl p-2 text-slate-700 hover:bg-slate-100 hover:text-blue-600 focus:outline-none border border-slate-200"
+              className="inline-flex items-center justify-center rounded-xl p-2 text-slate-700 hover:bg-slate-100 hover:text-blue-600 focus:outline-none border border-slate-200 transition"
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
@@ -272,7 +206,7 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-blue-100 bg-white/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-4 shadow-xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {allNavLinks.map((link, idx) => (
+            {navLinks.map((link, idx) => (
               <a
                 key={link.id}
                 href={link.href}
@@ -317,19 +251,19 @@ export function Navbar() {
                 className="w-full justify-center gap-2 border-slate-300 text-slate-700 hover:text-blue-600 hover:bg-slate-50 font-semibold"
               >
                 <User className="h-4 w-4 text-blue-600" />
-                <span>Client Portal & Dashboard</span>
+                <span>Client Portal &amp; Dashboard</span>
               </Button>
             </Link>
 
             <a
               href="#apply"
               onClick={(e) => handleLinkClick(e, "#apply")}
-              className="w-full"
+              className="w-full sm:col-span-2"
             >
               <Button
                 variant="primary"
                 size="md"
-                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md shadow-blue-500/20"
               >
                 <FileCheck className="h-4 w-4" />
                 <span>Apply for Website</span>
