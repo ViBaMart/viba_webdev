@@ -1,105 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
   <defs>
-    <!-- Master Navy-to-Electric Cyan Brand Gradient (0° to 135° diagonal) -->
-    <linearGradient id="viba-brand-grad" x1="92" y1="96" x2="420" y2="416" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#0B132B" />
-      <stop offset="25%" stopColor="#1C3782" />
-      <stop offset="55%" stopColor="#1D4ED8" />
-      <stop offset="78%" stopColor="#0284C7" />
-      <stop offset="92%" stopColor="#06B6D4" />
-      <stop offset="100%" stopColor="#00F5FF" />
+    <linearGradient id="vb-brand-gradient" x1="80" y1="96" x2="432" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="22%" stop-color="#1E3A8A" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="75%" stop-color="#0284C7" />
+      <stop offset="90%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#00F5FF" />
     </linearGradient>
 
-    <!-- Deep Navy Gradient for Left V Stroke -->
-    <linearGradient id="v-stroke-grad" x1="92" y1="96" x2="276" y2="416" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#0F172A" />
-      <stop offset="35%" stopColor="#1E3A8A" />
-      <stop offset="70%" stopColor="#2563EB" />
-      <stop offset="100%" stopColor="#0284C7" />
+    <linearGradient id="vb-v-stroke-grad" x1="84" y1="96" x2="260" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="40%" stop-color="#1E3A8A" />
+      <stop offset="80%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#0284C7" />
     </linearGradient>
 
-    <!-- Electric Cyan Glowing Accent Gradient for B Bowls & Coding Chevron -->
-    <linearGradient id="b-cyan-grad" x1="212" y1="96" x2="420" y2="416" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#2563EB" />
-      <stop offset="40%" stopColor="#0284C7" />
-      <stop offset="75%" stopColor="#06B6D4" />
-      <stop offset="100%" stopColor="#00F5FF" />
+    <linearGradient id="vb-b-loops-grad" x1="220" y1="96" x2="432" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="40%" stop-color="#0284C7" />
+      <stop offset="75%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#00F5FF" />
     </linearGradient>
 
-    <!-- Coding Bracket Accent Highlight Gradient -->
-    <linearGradient id="code-chevron-grad" x1="310" y1="220" x2="380" y2="292" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stopColor="#38BDF8" />
-      <stop offset="50%" stopColor="#00F5FF" />
-      <stop offset="100%" stopColor="#A5F3FC" />
+    <linearGradient id="vb-swoosh-grad" x1="120" y1="430" x2="450" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.2" />
+      <stop offset="30%" stop-color="#0284C7" stop-opacity="0.8" />
+      <stop offset="70%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#00F5FF" />
+    </linearGradient>
+
+    <linearGradient id="vb-code-grad" x1="310" y1="230" x2="390" y2="285" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#00F5FF" />
+      <stop offset="100%" stop-color="#E0F2FE" />
     </linearGradient>
   </defs>
 
-  <!-- 
-    ViBa Web Development Solutions - Official VB Monogram
-    Center-aligned in 512x512 Canvas (Bounding box: X: 92-420, Y: 96-416)
-    Pure vector glyph with transparent background.
-  -->
-  <g id="viba-vb-monogram">
-    <!-- 1. The Left V Stroke (Angles down into the shared vertical spine) -->
-    <path
-      d="M92 96 H156 L276 416 H212 L92 96 Z"
-      fill="url(#v-stroke-grad)"
-    />
+  <g id="viba-vb-monogram-symbol">
+    <!-- Left V Diagonal Arm -->
+    <path d="M88 96 H156 L268 416 H200 L88 96 Z" fill="url(#vb-v-stroke-grad)" />
 
-    <!-- 2. The Shared Center Spine (Vertical backbone uniting V and B) -->
-    <path
-      d="M212 96 H276 V416 H212 V96 Z"
-      fill="url(#viba-brand-grad)"
-    />
+    <!-- Interconnected Vertical Spine -->
+    <path d="M200 96 H268 V416 H200 V96 Z" fill="url(#vb-brand-gradient)" />
 
-    <!-- 3. The Letter B Bowls with Integrated Architectural Silhouette -->
-    <!-- Outer contour of the double bowls with precision geometric curvatures -->
-    <path
-      fill-rule="evenodd"
-      clip-rule="evenodd"
-      d="M276 96
-         H344
-         C384 96 412 122 412 162
-         C412 198 388 226 352 238
-         L324 246
-         L358 258
-         C398 272 420 302 420 344
-         C420 388 388 416 344 416
-         H276
-         V96 Z
+    <!-- Letter B Curved Double Loops -->
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M268 96 H348 C390 96 422 124 422 166 C422 202 396 230 358 244 C404 258 432 292 432 338 C432 386 394 416 348 416 H268 V96 Z M268 152 V220 H340 C362 220 376 206 376 186 C376 166 362 152 340 152 H268 Z M268 292 V360 H346 C372 360 386 346 386 326 C386 306 372 292 346 292 H268 Z" fill="url(#vb-b-loops-grad)" />
 
-         /* Upper Counter of B - Modern D-Loop with smooth corners */
-         M276 150
-         V214
-         H338
-         C358 214 372 202 372 182
-         C372 162 358 150 338 150
-         H276 Z
+    <!-- Dynamic Innovation Swoosh -->
+    <path d="M136 426 C210 448 310 442 380 404 C416 384 442 352 448 312 C444 324 434 338 420 348 C360 392 260 412 176 398 C158 395 144 390 136 426 Z" fill="url(#vb-swoosh-grad)" />
 
-         /* Lower Counter of B - Spacious, balanced aerodynamic contour */
-         M276 288
-         V362
-         H344
-         C368 362 382 348 382 325
-         C382 302 368 288 344 288
-         H276 Z"
-      fill="url(#b-cyan-grad)"
-    />
-
-    <!-- 4. Subtle Coding-Inspired Element: The Precision Angle Bracket (Chevron '>') -->
-    <!-- Seamlessly nested into the central waist junction of B, symbolizing forward velocity & source code -->
-    <path
-      d="M326 230 
-         L364 256 
-         L326 282 
-         L342 294 
-         L392 256 
-         L342 218 
-         Z"
-      fill="url(#code-chevron-grad)"
-    />
-
-    <!-- 5. Micro Technology Vertex Dot at the base convergence point -->
-    <circle cx="244" cy="416" r="3.5" fill="#00F5FF" />
+    <!-- Minimal Embedded Code Symbol: < / > -->
+    <g id="vb-code-symbol" fill="url(#vb-code-grad)">
+      <path d="M316 256 L332 242 L332 248 L323 256 L332 264 L332 270 Z" />
+      <path d="M344 240 L350 240 L340 272 L334 272 Z" />
+      <path d="M354 242 L370 256 L354 270 L354 264 L363 256 L354 248 Z" />
+    </g>
   </g>
 </svg>
