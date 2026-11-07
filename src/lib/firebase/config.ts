@@ -7,5 +7,6 @@ export const firebaseClientConfig = {
   storageBucket: clientEnv.firebase.storageBucket,
   messagingSenderId: clientEnv.firebase.messagingSenderId,
   appId: clientEnv.firebase.appId,
+  measurementId: clientEnv.firebase.measurementId,
 };
 
