@@ -58,7 +58,7 @@ export function Footer() {
               className="inline-block group"
             >
               <VbLogo
-                size="md"
+                size="lg"
                 variant="badge"
                 showText={true}
                 textColor="text-slate-900 group-hover:text-blue-600 transition-colors"
