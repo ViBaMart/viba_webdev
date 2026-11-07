@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { VbLogo } from "@/components/common/VbLogo";
@@ -24,26 +25,14 @@ export function Footer() {
     return null;
   }
 
-  const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    const el = document.getElementById(id);
-    if (el) {
-      const navOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
-      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-      window.history.pushState(null, "", `#${id}`);
-    }
-  };
-
   const sectionsList = [
-    { label: "1. Home", href: "#home", id: "home" },
-    { label: "2. About Us", href: "#about", id: "about" },
-    { label: "3. Our Services", href: "#services", id: "services" },
-    { label: "4. Pricing", href: "#pricing", id: "pricing" },
-    { label: "5. Website Demo", href: "#demo", id: "demo" },
-    { label: "6. Apply for Website", href: "#apply", id: "apply" },
-    { label: "7. Contact Us", href: "#contact", id: "contact" },
+    { label: "1. Home", href: "/" },
+    { label: "2. About Us", href: "/about" },
+    { label: "3. Our Services", href: "/services" },
+    { label: "4. Pricing", href: "/pricing" },
+    { label: "5. Website Demo", href: "/demo" },
+    { label: "6. Apply for Website", href: "/apply" },
+    { label: "7. Contact Us", href: "/contact" },
   ];
 
   return (
@@ -52,9 +41,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
           {/* Brand & Agency Info Column */}
           <div className="lg:col-span-5 space-y-5">
-            <a
-              href="#home"
-              onClick={(e) => scrollTo(e, "home")}
+            <Link
+              href="/"
               className="inline-block group"
             >
               <VbLogo
@@ -64,7 +52,7 @@ export function Footer() {
                 textColor="text-slate-900 group-hover:text-blue-600 transition-colors"
                 subtextColor="text-slate-500 font-semibold"
               />
-            </a>
+            </Link>
 
             <p className="text-sm text-slate-600 leading-relaxed max-w-md">
               {AGENCY_CONFIG.name} specializes in high-performance web development.
@@ -104,19 +92,18 @@ export function Footer() {
           <div className="lg:col-span-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-4 flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-blue-600" />
-              <span>Main Website Sections</span>
+              <span>Main Website Pages</span>
             </h3>
             <ul className="space-y-2 text-sm">
               {sectionsList.map((sec) => (
-                <li key={sec.id}>
-                  <a
+                <li key={sec.href}>
+                  <Link
                     href={sec.href}
-                    onClick={(e) => scrollTo(e, sec.id)}
                     className="hover:text-blue-600 transition-colors flex items-center justify-between py-0.5 text-slate-700 font-medium"
                   >
                     <span>{sec.label}</span>
                     <span className="text-xs text-blue-500 font-mono">→</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -132,11 +119,7 @@ export function Footer() {
             </p>
 
             <div className="space-y-2.5 pt-2">
-              <a
-                href="#apply"
-                onClick={(e) => scrollTo(e, "apply")}
-                className="block w-full"
-              >
+              <Link href="/apply" className="block w-full">
                 <Button
                   size="md"
                   variant="primary"
@@ -145,13 +128,9 @@ export function Footer() {
                   <FileCheck className="h-4 w-4" />
                   <span>Apply for Website</span>
                 </Button>
-              </a>
+              </Link>
 
-              <a
-                href="#demo"
-                onClick={(e) => scrollTo(e, "demo")}
-                className="block w-full"
-              >
+              <Link href="/demo" className="block w-full">
                 <Button
                   size="md"
                   variant="outline"
@@ -160,7 +139,7 @@ export function Footer() {
                   <Eye className="h-4 w-4 text-blue-600" />
                   <span>View Demo</span>
                 </Button>
-              </a>
+              </Link>
             </div>
 
             <div className="pt-4 border-t border-slate-100 space-y-2 text-[11px] text-slate-500">

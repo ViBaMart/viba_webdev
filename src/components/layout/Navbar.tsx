@@ -19,54 +19,28 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [activeSection, setActiveSection] = useState("home");
 
   useEffect(() => {
-    if (pathname?.startsWith("/demos")) return;
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
-
-      const sectionIds = ["home", "about", "services", "pricing", "demo", "apply", "contact"];
-      const scrollPos = window.scrollY + 120;
-
-      for (let i = sectionIds.length - 1; i >= 0; i--) {
-        const el = document.getElementById(sectionIds[i]);
-        if (el && el.offsetTop <= scrollPos) {
-          setActiveSection(sectionIds[i]);
-          break;
-        }
-      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [pathname]);
+  }, []);
 
   const navLinks = [
-    { label: "Home", href: "#home", id: "home" },
-    { label: "About Us", href: "#about", id: "about" },
-    { label: "Our Services", href: "#services", id: "services" },
-    { label: "Pricing", href: "#pricing", id: "pricing" },
-    { label: "Website Demo", href: "#demo", id: "demo" },
-    { label: "Contact Us", href: "#contact", id: "contact" },
+    { label: "Home", href: "/" },
+    { label: "About Us", href: "/about" },
+    { label: "Our Services", href: "/services" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Website Demo", href: "/demo" },
+    { label: "Contact Us", href: "/contact" },
   ];
 
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
-    setMobileMenuOpen(false);
-    const targetId = href.replace("#", "");
-    const targetEl = document.getElementById(targetId);
-    if (targetEl) {
-      const navOffset = 80;
-      const elementPosition = targetEl.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-      window.history.pushState(null, "", href);
-    }
+  const isLinkActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href || (pathname?.startsWith(href) ?? false);
   };
 
   if (pathname?.startsWith("/demos")) {
@@ -92,21 +66,19 @@ export function Navbar() {
             Accepting New Website Development Clients for Q4/Q1
           </span>
           <div className="hidden md:flex items-center gap-4 text-[11px]">
-            <a
-              href="#demo"
-              onClick={(e) => handleLinkClick(e, "#demo")}
+            <Link
+              href="/demo"
               className="text-white hover:text-blue-100 underline underline-offset-2 transition-colors"
             >
               Interactive Live Demos
-            </a>
+            </Link>
             <span className="text-blue-300">•</span>
-            <a
-              href="#apply"
-              onClick={(e) => handleLinkClick(e, "#apply")}
+            <Link
+              href="/apply"
               className="text-amber-300 font-semibold hover:text-white transition-colors"
             >
               Apply Online &rarr;
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -115,9 +87,8 @@ export function Navbar() {
         <div className="flex h-20 items-center justify-between gap-4">
           {/* 1. Left: Brand Logo & Title */}
           <div className="flex items-center shrink-0">
-            <a
-              href="#home"
-              onClick={(e) => handleLinkClick(e, "#home")}
+            <Link
+              href="/"
               className="group flex items-center gap-2.5 transition-transform hover:opacity-95"
               aria-label="ViBa Web Development Solutions - Home"
             >
@@ -128,25 +99,27 @@ export function Navbar() {
                 textColor="text-slate-900 group-hover:text-blue-600 transition-colors"
                 subtextColor="text-slate-500 font-semibold"
               />
-            </a>
+            </Link>
           </div>
 
           {/* 2. Center: Desktop Main Navigation */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.href}
-                onClick={(e) => handleLinkClick(e, link.href)}
-                className={`px-3 py-2 rounded-xl text-xs xl:text-sm font-semibold transition-all relative ${
-                  activeSection === link.id
-                    ? "text-blue-600 bg-blue-50/80 font-bold"
-                    : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
-                }`}
-              >
-                {link.label}
-              </a>
-            ))}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2" aria-label="Main Navigation">
+            {navLinks.map((link) => {
+              const active = isLinkActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3 py-2 rounded-xl text-xs xl:text-sm font-semibold transition-all relative ${
+                    active
+                      ? "text-blue-600 bg-blue-50/80 font-bold"
+                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* 3. Right: Action Buttons (Client Portal & Apply) */}
@@ -162,10 +135,7 @@ export function Navbar() {
               </Button>
             </Link>
 
-            <a
-              href="#apply"
-              onClick={(e) => handleLinkClick(e, "#apply")}
-            >
+            <Link href="/apply">
               <Button
                 size="sm"
                 variant="primary"
@@ -174,20 +144,17 @@ export function Navbar() {
                 <FileCheck className="h-3.5 w-3.5" />
                 <span>Apply for Website</span>
               </Button>
-            </a>
+            </Link>
           </div>
 
           {/* 4. Mobile Right Controls (Compact Apply + Hamburger) */}
           <div className="flex lg:hidden items-center gap-2">
-            <a
-              href="#apply"
-              onClick={(e) => handleLinkClick(e, "#apply")}
-            >
+            <Link href="/apply">
               <Button size="sm" variant="primary" className="text-xs px-3 py-1.5 gap-1 bg-blue-600">
                 <FileCheck className="h-3.5 w-3.5" />
                 <span>Apply</span>
               </Button>
-            </a>
+            </Link>
 
             <button
               type="button"
@@ -206,28 +173,31 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-blue-100 bg-white/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-4 shadow-xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {navLinks.map((link, idx) => (
-              <a
-                key={link.id}
-                href={link.href}
-                onClick={(e) => handleLinkClick(e, link.href)}
-                className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
-                  activeSection === link.id
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-blue-600"
-                }`}
-              >
-                <span>{link.label}</span>
-                <span className="text-[10px] text-blue-500 font-mono">0{idx + 1}</span>
-              </a>
-            ))}
+            {navLinks.map((link, idx) => {
+              const active = isLinkActive(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+                    active
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                  }`}
+                >
+                  <span>{link.label}</span>
+                  <span className="text-[10px] text-blue-500 font-mono">0{idx + 1}</span>
+                </Link>
+              );
+            })}
           </div>
 
-          {/* Mobile Clear Action Buttons */}
+          {/* Mobile Action Buttons */}
           <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            <a
-              href="#demo"
-              onClick={(e) => handleLinkClick(e, "#demo")}
+            <Link
+              href="/demo"
+              onClick={() => setMobileMenuOpen(false)}
               className="w-full"
             >
               <Button
@@ -238,7 +208,7 @@ export function Navbar() {
                 <Eye className="h-4 w-4 text-blue-600" />
                 <span>View Demo</span>
               </Button>
-            </a>
+            </Link>
 
             <Link
               href="/customer"
@@ -255,9 +225,9 @@ export function Navbar() {
               </Button>
             </Link>
 
-            <a
-              href="#apply"
-              onClick={(e) => handleLinkClick(e, "#apply")}
+            <Link
+              href="/apply"
+              onClick={() => setMobileMenuOpen(false)}
               className="w-full sm:col-span-2"
             >
               <Button
@@ -269,7 +239,7 @@ export function Navbar() {
                 <span>Apply for Website</span>
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       )}

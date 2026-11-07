@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
@@ -232,18 +233,18 @@ export function ContactForm() {
                 Skip the back-and-forth and submit your project requirements through our official website application.
               </p>
               <div className="flex flex-col sm:flex-row gap-2.5">
-                <a href="#apply" onClick={(e) => scrollTo(e, "apply")} className="w-full">
+                <Link href="/apply" className="w-full">
                   <Button size="sm" variant="primary" className="w-full bg-white text-blue-900 hover:bg-slate-100 font-bold gap-1.5 justify-center">
                     <FileCheck className="h-4 w-4" />
                     <span>Apply for Website</span>
                   </Button>
-                </a>
-                <a href="#demo" onClick={(e) => scrollTo(e, "demo")} className="w-full">
+                </Link>
+                <Link href="/demo" className="w-full">
                   <Button size="sm" variant="outline" className="w-full border-white/40 text-white hover:bg-white/10 font-bold gap-1.5 justify-center">
                     <Eye className="h-4 w-4" />
                     <span>View Demo</span>
                   </Button>
-                </a>
+                </Link>
               </div>
             </div>
           </div>

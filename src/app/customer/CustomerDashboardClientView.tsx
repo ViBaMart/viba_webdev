@@ -1117,7 +1117,7 @@ export default function CustomerDashboardClientView() {
                 </p>
               </div>
               <Link
-                href="/#apply"
+                href="/apply"
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 text-slate-950 text-xs font-bold hover:from-cyan-300 hover:to-sky-300 transition flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
               >
                 <span>Apply for Website</span>
@@ -1133,7 +1133,7 @@ export default function CustomerDashboardClientView() {
                   Submit a website application for ViBa WebDevloper to receive an official proposal and package quotation.
                 </p>
                 <Link
-                  href="/#apply"
+                  href="/apply"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 text-xs font-bold hover:bg-cyan-400 transition"
                 >
                   Start New Application

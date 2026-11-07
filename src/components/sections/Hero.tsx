@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { VbLogo } from "@/components/common/VbLogo";
 import { Button } from "@/components/common/Button";
@@ -96,9 +97,8 @@ export function Hero() {
 
           {/* Clear Primary Action Buttons */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="#apply"
-              onClick={(e) => scrollToSection(e, "apply")}
+            <Link
+              href="/apply"
               className="w-full sm:w-auto"
             >
               <Button
@@ -110,11 +110,10 @@ export function Hero() {
                 <span>Apply for Website</span>
                 <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
-            </a>
+            </Link>
 
-            <a
-              href="#demo"
-              onClick={(e) => scrollToSection(e, "demo")}
+            <Link
+              href="/demo"
               className="w-full sm:w-auto"
             >
               <Button
@@ -125,7 +124,7 @@ export function Hero() {
                 <Eye className="h-5 w-5 text-blue-600" />
                 <span>View Demo</span>
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -236,13 +235,12 @@ export function Hero() {
 
                     <div className="mt-3 p-2 rounded bg-blue-950/60 border border-blue-800/60 flex items-center justify-between text-[10px]">
                       <span className="text-blue-300 font-medium">Ready to deploy your website?</span>
-                      <a
-                        href="#apply"
-                        onClick={(e) => scrollToSection(e, "apply")}
+                      <Link
+                        href="/apply"
                         className="bg-blue-600 text-white px-2 py-0.5 rounded font-semibold hover:bg-blue-500"
                       >
                         Apply Now
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>

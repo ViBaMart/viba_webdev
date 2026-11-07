@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   SERVICES_AND_PRICING_PACKAGES,
   ECOMMERCE_PACKAGES,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 
 export function WebsitePackages() {
+  const router = useRouter();
   // Selected tier for E-Commerce (default to approved Starter Storefront $3,499)
   const [selectedEcomTierIndex, setSelectedEcomTierIndex] = useState(0);
   const [showAllEcomTiers, setShowAllEcomTiers] = useState(false);
@@ -43,31 +45,40 @@ export function WebsitePackages() {
         ? `First-year: ${pkg.firstYearPayment} (Dev: ${pkg.developmentCharges || pkg.price} + Annual: ${pkg.annualServiceCharges || "N/A"})`
         : pkg.price);
 
+    const packageDetail = {
+      packageId: pkg.id,
+      packageName: pkg.name,
+      serviceType: pkg.serviceType || (pkg.category === "static" ? "static_website" : pkg.category === "dynamic" ? "dynamic_website" : "ecommerce"),
+      pricingSummary,
+      developmentCharges: pkg.developmentCharges,
+      annualServiceCharges: pkg.annualServiceCharges,
+      firstYearPayment: pkg.firstYearPayment,
+      renewalCharges: pkg.renewalCharges,
+    };
+
     // 1. Dispatch custom event for ApplyWebsite component
     if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("viba_selected_package", JSON.stringify(packageDetail));
+      } catch (err) {
+        console.error(err);
+      }
+
       window.dispatchEvent(
         new CustomEvent("viba-select-package", {
-          detail: {
-            packageId: pkg.id,
-            packageName: pkg.name,
-            serviceType: pkg.serviceType || (pkg.category === "static" ? "static_website" : pkg.category === "dynamic" ? "dynamic_website" : "ecommerce"),
-            pricingSummary,
-            developmentCharges: pkg.developmentCharges,
-            annualServiceCharges: pkg.annualServiceCharges,
-            firstYearPayment: pkg.firstYearPayment,
-            renewalCharges: pkg.renewalCharges,
-          },
+          detail: packageDetail,
         })
       );
 
-      // 2. Smoothly scroll to the customer application section
+      // 2. If on same page, scroll to apply section; otherwise navigate to /apply
       const applyElement = document.getElementById("apply");
       if (applyElement) {
         const navOffset = 80;
         const elementPosition = applyElement.getBoundingClientRect().top;
         const offsetPosition = elementPosition + window.pageYOffset - navOffset;
         window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-        window.history.pushState(null, "", "#apply");
+      } else {
+        router.push("/apply");
       }
     }
   };
@@ -627,44 +638,24 @@ export function WebsitePackages() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
-              <a
-                href="#demo"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const el = document.getElementById("demo");
-                  if (el) {
-                    const navOffset = 80;
-                    const pos = el.getBoundingClientRect().top + window.pageYOffset - navOffset;
-                    window.scrollTo({ top: pos, behavior: "smooth" });
-                    window.history.pushState(null, "", "#demo");
-                  }
-                }}
+              <Link
+                href="/demo"
                 className="w-full sm:w-auto"
               >
                 <Button size="md" variant="outline" className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 gap-2 font-semibold">
                   <span>Explore Website Demo</span>
                 </Button>
-              </a>
+              </Link>
 
-              <a
-                href="#apply"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const el = document.getElementById("apply");
-                  if (el) {
-                    const navOffset = 80;
-                    const pos = el.getBoundingClientRect().top + window.pageYOffset - navOffset;
-                    window.scrollTo({ top: pos, behavior: "smooth" });
-                    window.history.pushState(null, "", "#apply");
-                  }
-                }}
+              <Link
+                href="/apply"
                 className="w-full sm:w-auto"
               >
                 <Button size="md" variant="primary" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 font-semibold">
                   <FileCheck className="h-4 w-4" />
                   <span>Start Application</span>
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

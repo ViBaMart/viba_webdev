@@ -19,7 +19,7 @@ export default function DemosLayout({
       shortLabel: "1. Static",
       href: "/demos/static-business",
       icon: Monitor,
-      badge: "Fast & Elegant",
+      badge: "Architectural Studio",
     },
     {
       id: "dynamic",
@@ -27,7 +27,7 @@ export default function DemosLayout({
       shortLabel: "2. Dynamic",
       href: "/demos/dynamic-business",
       icon: Database,
-      badge: "CMS & Realtime",
+      badge: "Cloud CMS & CRM",
     },
     {
       id: "ecommerce",
@@ -35,7 +35,7 @@ export default function DemosLayout({
       shortLabel: "3. E-Commerce",
       href: "/demos/ecommerce",
       icon: ShoppingBag,
-      badge: "Cart & Checkout",
+      badge: "Storefront & Account",
     },
   ];
 
@@ -47,7 +47,7 @@ export default function DemosLayout({
           {/* Left: ViBa Agency Back Button & Identity */}
           <div className="flex items-center gap-3">
             <Link
-              href="/#demo"
+              href="/demo"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors shadow-xs"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -92,7 +92,7 @@ export default function DemosLayout({
           <div className="hidden lg:flex items-center gap-2 text-xs">
             <span className="text-slate-400">Like this architecture?</span>
             <Link
-              href="/#apply"
+              href="/apply"
               className="font-bold text-blue-400 hover:text-blue-300 underline underline-offset-2 flex items-center gap-1"
             >
               <span>Get Your Website</span>

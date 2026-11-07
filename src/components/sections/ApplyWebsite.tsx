@@ -83,6 +83,28 @@ export function ApplyWebsite() {
 
   // Listen for package selection events from the pricing section
   useEffect(() => {
+    // 1. Check if a package was selected from /pricing and stored in sessionStorage
+    try {
+      const stored = sessionStorage.getItem("viba_selected_package");
+      if (stored) {
+        const detail = JSON.parse(stored);
+        if (detail) {
+          const { packageName, serviceType, pricingSummary } = detail;
+          let mappedType: WebsiteType = "Static Website";
+          if (serviceType === "dynamic_website") mappedType = "Dynamic Business Website";
+          if (serviceType === "ecommerce") mappedType = "E-commerce Website";
+
+          setFormData((prev) => ({
+            ...prev,
+            websiteType: mappedType,
+            selectedPackage: `${packageName || "Selected Package"} ${pricingSummary ? `(${pricingSummary})` : ""}`,
+          }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
     const handlePackageSelect = (e: Event) => {
       const customEvent = e as CustomEvent<{
         packageId?: string;

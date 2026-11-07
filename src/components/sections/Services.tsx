@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { AGENCY_SERVICES } from "@/config/agency";
 import { Card } from "@/components/common/Card";
 import { Badge } from "@/components/common/Badge";
@@ -29,18 +30,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
 };
 
 export function Services() {
-  const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    const el = document.getElementById(id);
-    if (el) {
-      const navOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
-      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-      window.history.pushState(null, "", `#${id}`);
-    }
-  };
-
   return (
     <section id="services" className="py-20 sm:py-24 bg-slate-50/60 border-b border-slate-200/80">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -130,14 +119,13 @@ export function Services() {
                   </div>
 
                   {/* Action Link */}
-                  <a
-                    href="#apply"
-                    onClick={(e) => scrollTo(e, "apply")}
+                  <Link
+                    href="/apply"
                     className="flex items-center justify-between text-xs font-bold text-blue-600 hover:text-blue-800 pt-2 border-t border-slate-50 group transition-colors"
                   >
                     <span>Apply for this service</span>
                     <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                  </a>
+                  </Link>
                 </div>
               </Card>
             );
@@ -156,19 +144,19 @@ export function Services() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0 w-full md:w-auto justify-center">
-            <a href="#demo" onClick={(e) => scrollTo(e, "demo")}>
+            <Link href="/demo">
               <Button size="md" variant="outline" className="border-blue-300 text-white hover:bg-white/10 gap-1.5 font-semibold">
                 <Eye className="h-4 w-4" />
                 <span>View Demo</span>
               </Button>
-            </a>
-            <a href="#apply" onClick={(e) => scrollTo(e, "apply")}>
+            </Link>
+            <Link href="/apply">
               <Button size="md" variant="primary" className="bg-white text-blue-900 hover:bg-slate-100 gap-1.5 font-bold shadow-md">
                 <FileCheck className="h-4 w-4" />
                 <span>Apply for Website</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

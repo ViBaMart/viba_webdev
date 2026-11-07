@@ -308,7 +308,11 @@ export function WebsiteDemo() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span><strong>Checkout:</strong> 3-step checkout & verified receipt</span>
+                  <span><strong>Checkout:</strong> 3-step SSL checkout & verified receipt</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                  <span><strong>Customer Account:</strong> Live order tracking, addresses & payments</span>
                 </div>
               </div>
             </div>
@@ -398,12 +402,12 @@ export function WebsiteDemo() {
               </div>
 
               {/* Direct Apply Button */}
-              <a href="#apply" onClick={(e) => scrollTo(e, "apply")}>
+              <Link href="/apply">
                 <Button size="sm" variant="primary" className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 font-bold shadow-xs">
                   <FileCheck className="h-4 w-4" />
                   <span>Apply for Website</span>
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -575,14 +579,13 @@ export function WebsiteDemo() {
                   >
                     {selectedDemo.ctaText}
                   </button>
-                  <a
-                    href="#apply"
-                    onClick={(e) => scrollTo(e, "apply")}
+                  <Link
+                    href="/apply"
                     className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl transition-all inline-flex items-center gap-1.5"
                   >
                     <span>Order Similar Site</span>
                     <ArrowRight className="h-3.5 w-3.5" />
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -619,11 +622,11 @@ export function WebsiteDemo() {
                       We can customize this design with your branding, domain, and content in 5–10 days.
                     </span>
                   </div>
-                  <a href="#apply" onClick={(e) => scrollTo(e, "apply")}>
+                  <Link href="/apply">
                     <Button size="sm" variant="primary" className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 font-bold">
                       Apply for This Website
                     </Button>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -636,18 +639,18 @@ export function WebsiteDemo() {
 
         {/* Bottom Section Action Bar */}
         <div className="mt-12 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="#apply" onClick={(e) => scrollTo(e, "apply")}>
+          <Link href="/apply">
             <Button size="lg" variant="primary" className="bg-blue-600 hover:bg-blue-700 text-white gap-2 font-bold px-8 shadow-md">
               <FileCheck className="h-5 w-5" />
               <span>Apply for Website</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </a>
-          <a href="#pricing" onClick={(e) => scrollTo(e, "pricing")}>
+          </Link>
+          <Link href="/pricing">
             <Button size="lg" variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50 font-bold px-8 bg-white">
               <span>View Pricing Packages</span>
             </Button>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

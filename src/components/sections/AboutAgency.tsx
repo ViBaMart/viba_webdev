@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { AGENCY_CONFIG } from "@/config/agency";
 import { Badge } from "@/components/common/Badge";
 import { Card } from "@/components/common/Card";
@@ -55,18 +56,6 @@ export function AboutAgency() {
     { number: "99.95%", label: "Cloud Architecture Uptime SLA" },
     { number: "100%", label: "On-Time Milestone Delivery" },
   ];
-
-  const scrollTo = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    const el = document.getElementById(id);
-    if (el) {
-      const navOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navOffset;
-      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-      window.history.pushState(null, "", `#${id}`);
-    }
-  };
 
   return (
     <section id="about" className="py-20 sm:py-24 bg-white border-b border-slate-200/80 relative">
@@ -131,19 +120,19 @@ export function AboutAgency() {
 
             {/* In-Section Action Buttons */}
             <div className="pt-4 flex flex-wrap items-center gap-3">
-              <a href="#apply" onClick={(e) => scrollTo(e, "apply")}>
+              <Link href="/apply">
                 <Button size="sm" variant="primary" className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 font-semibold">
                   <FileCheck className="h-4 w-4" />
                   <span>Apply for Website</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
-              </a>
-              <a href="#demo" onClick={(e) => scrollTo(e, "demo")}>
+              </Link>
+              <Link href="/demo">
                 <Button size="sm" variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50 gap-1.5 font-semibold">
                   <Eye className="h-4 w-4 text-blue-600" />
                   <span>View Website Demo</span>
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
 
