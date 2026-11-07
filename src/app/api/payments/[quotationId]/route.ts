@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 import {
   getPaymentByQuotationId,
   updatePaymentStatusDirectly,
@@ -23,6 +24,7 @@ const VALID_PAYMENT_STATUSES: PaymentStatus[] = [
 /**
  * GET /api/payments/[quotationId]
  * Customer & Admin can view payment details, bank instructions, and transaction history.
+ * Prevents unauthorized access to financial transaction history.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { quotationId } = await params;
@@ -32,6 +34,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { success: false, error: `Payment record for quotation "${quotationId}" not found.` },
       { status: 404 }
+    );
+  }
+
+  // Authorization check: Admin, Authenticated Customer Owner, or matching email verification
+  const isAdmin = Boolean(verifyAdminRequest(request));
+  const customer = await verifyCustomerRequest(request);
+  const emailQuery = request.nextUrl.searchParams.get("email");
+
+  const isAuthorized =
+    isAdmin ||
+    (customer && (customer.uid === payment.userId || (payment.customerEmail && customer.email === payment.customerEmail.toLowerCase()))) ||
+    Boolean(emailQuery && payment.customerEmail && emailQuery.trim().toLowerCase() === payment.customerEmail.toLowerCase());
+
+  if (!isAuthorized) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unauthorized: Access to payment details requires admin or customer credentials.",
+        code: "UNAUTHORIZED_ACCESS",
+      },
+      { status: 401 }
     );
   }
 

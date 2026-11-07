@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 import { getDomainById, updateDomain, deleteDomain, DomainServiceError } from "@/services/domainService";
 import { UpdateDomainDTO } from "@/types/domain";
 
@@ -10,8 +11,19 @@ interface RouteParams {
 /**
  * GET /api/domains/[id]
  * Retrieves single domain details, expiry countdown, and full renewal history.
+ * Accessible to Admin or the owning customer.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const isAdmin = !!verifyAdminRequest(request);
+  const customer = isAdmin ? null : await verifyCustomerRequest(request);
+
+  if (!isAdmin && !customer) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Authentication required." },
+      { status: 401 }
+    );
+  }
+
   const { id } = await params;
 
   try {
@@ -21,6 +33,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         { success: false, error: `Domain record "${id}" was not found.` },
         { status: 404 }
       );
+    }
+
+    if (!isAdmin && customer) {
+      const isOwner =
+        (domain.customerEmail && domain.customerEmail.toLowerCase() === customer.email.toLowerCase()) ||
+        (domain.customerId && domain.customerId === customer.uid);
+      if (!isOwner) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden: You do not have permission to view this domain." },
+          { status: 403 }
+        );
+      }
     }
 
     return NextResponse.json({

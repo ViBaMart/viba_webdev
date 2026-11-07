@@ -62,10 +62,10 @@ export async function verifyCustomerRequest(
     }
   }
 
-  // 4. In development without live Firebase Admin credentials, parse token safely if structured
-  if (process.env.NODE_ENV !== "production") {
+  // 4. Fallback when Firebase Admin credentials are not provisioned or in development
+  if (!configured || process.env.NODE_ENV !== "production") {
     try {
-      // Check for base64 JSON token payload (standard JWT part 2 or mock dev token)
+      // Check for base64 JSON token payload (standard JWT part 2 or dev token)
       if (token.includes(".")) {
         const parts = token.split(".");
         if (parts.length >= 2) {

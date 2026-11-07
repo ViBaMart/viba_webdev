@@ -8,6 +8,7 @@ import {
   CustomerProjectServiceError,
 } from "@/services/customerProjectService";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 import { ProjectStage } from "@/types/customerProject";
 
 interface RouteParams {
@@ -43,11 +44,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   // 2. Check Customer Access (Restricting each customer to their own project)
+  const customer = await verifyCustomerRequest(request);
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token") || request.headers.get("x-project-token");
   const email = searchParams.get("email") || request.headers.get("x-client-email");
 
-  const isAuthorized = verifyCustomerAccess(project, token, email);
+  const isAuthorized =
+    (customer && (customer.uid === project.userId || (project.clientEmail && customer.email === project.clientEmail.toLowerCase()))) ||
+    verifyCustomerAccess(project, token, email);
   if (!isAuthorized) {
     return NextResponse.json(
       {

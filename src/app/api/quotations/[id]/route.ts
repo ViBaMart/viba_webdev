@@ -6,6 +6,8 @@ import {
 } from "@/services/quotationService";
 import { getOrCreatePaymentForQuotation } from "@/services/paymentService";
 import { QuotationStatus } from "@/types/quotation";
+import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,6 +16,7 @@ interface RouteParams {
 /**
  * GET /api/quotations/[id]
  * Customer & Admin can view complete quotation and financial details.
+ * Prevents unauthorized exposure of customer quotes.
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
@@ -23,6 +26,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(
       { success: false, error: `Quotation "${id}" not found.` },
       { status: 404 }
+    );
+  }
+
+  // Authorization check: Admin, Authenticated Customer Owner, or matching email verification
+  const isAdmin = Boolean(verifyAdminRequest(request));
+  const customer = await verifyCustomerRequest(request);
+  const emailQuery = request.nextUrl.searchParams.get("email");
+
+  const isAuthorized =
+    isAdmin ||
+    (customer && (customer.uid === quotation.userId || (quotation.email && customer.email === quotation.email.toLowerCase()))) ||
+    Boolean(emailQuery && quotation.email && emailQuery.trim().toLowerCase() === quotation.email.toLowerCase());
+
+  if (!isAuthorized) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unauthorized: Access to this quotation requires valid admin or customer authorization.",
+        code: "UNAUTHORIZED_ACCESS",
+      },
+      { status: 401 }
     );
   }
 

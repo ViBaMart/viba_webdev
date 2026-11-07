@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
-import { updateQuotationStatus } from "@/services/adminService";
+import { updateQuotationStatus, listQuotations } from "@/services/adminService";
 import { QuotationStatus } from "@/types/application";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const session = verifyAdminRequest(request);
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Admin privileges required." },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
+  const quotations = await listQuotations();
+  const quotation = quotations.find((q) => q.id === id);
+
+  if (!quotation) {
+    return NextResponse.json(
+      { success: false, error: `Quotation ${id} was not found.` },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: quotation,
+  });
 }
 
 const VALID_QUOTATION_STATUSES: QuotationStatus[] = [

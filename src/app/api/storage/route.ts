@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { uploadFileToStorage, StorageServiceError } from "@/services/storageService";
 import { apiSuccess, apiError } from "@/lib/api/response";
 import { isRateLimited, validateApiKey, getRequestMetadata } from "@/lib/api/security";
+import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 import { getAdminFirebaseStorage } from "@/lib/firebase/storage";
 
 export async function GET() {
@@ -24,9 +26,13 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // 2. Authentication check
-  if (!validateApiKey(request)) {
-    return apiError("Unauthorized: Valid API key or Bearer token required.", {
+  // 2. Authentication check: Admin, Authenticated Customer, or Valid API Key
+  const isAdmin = !!verifyAdminRequest(request);
+  const customer = isAdmin ? null : await verifyCustomerRequest(request);
+  const hasValidApiKey = validateApiKey(request);
+
+  if (!isAdmin && !customer && !hasValidApiKey) {
+    return apiError("Unauthorized: Valid API key or authentication session required.", {
       status: 401,
       code: "UNAUTHORIZED",
     });
@@ -53,7 +59,7 @@ export async function POST(request: NextRequest) {
     const uploaded = await uploadFileToStorage(buffer, file.name, file.type, {
       folder,
       isPublic,
-      tenantId: metadata.tenantId,
+      tenantId: customer ? customer.uid : metadata.tenantId,
     });
 
     return apiSuccess(uploaded, {

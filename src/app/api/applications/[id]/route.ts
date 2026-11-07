@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApplicationById } from "@/services/applicationService";
 import { validateApiKey } from "@/lib/api/security";
+import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -29,18 +31,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  // Security check: allow if admin API key matches OR customer provides matching email verification
-  const isAdmin = validateApiKey(request);
+  // Security check: allow if admin (API key or session) OR customer (token or verified email)
+  const isAdmin = validateApiKey(request) || Boolean(verifyAdminRequest(request));
+  const customer = await verifyCustomerRequest(request);
   const emailQuery = request.nextUrl.searchParams.get("email");
 
   const isVerifiedCustomer =
-    emailQuery && emailQuery.trim().toLowerCase() === application.email.toLowerCase();
+    (customer && (customer.uid === application.userId || (application.email && customer.email === application.email.toLowerCase()))) ||
+    Boolean(emailQuery && emailQuery.trim().toLowerCase() === application.email.toLowerCase());
 
   if (!isAdmin && !isVerifiedCustomer) {
     return NextResponse.json(
       {
         success: false,
-        error: "Unauthorized: You must supply a valid admin token or verified customer email to view this application.",
+        error: "Unauthorized: You must supply a valid admin session or verified customer credentials to view this application.",
         code: "UNAUTHORIZED_ACCESS",
       },
       { status: 401 }

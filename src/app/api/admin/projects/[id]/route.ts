@@ -1,10 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
-import { updateCustomerProject } from "@/services/adminService";
+import { updateCustomerProject, listCustomerProjects } from "@/services/adminService";
 import { CustomerProject } from "@/types/application";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const session = verifyAdminRequest(request);
+  if (!session) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Admin privileges required." },
+      { status: 401 }
+    );
+  }
+
+  const { id } = await params;
+  const projects = await listCustomerProjects();
+  const project = projects.find((p) => p.id === id);
+
+  if (!project) {
+    return NextResponse.json(
+      { success: false, error: `Project ${id} was not found.` },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: project,
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {

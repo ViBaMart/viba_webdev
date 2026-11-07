@@ -7,6 +7,7 @@ import {
 } from "@/services/applicationService";
 import { CreateApplicationDTO, WebsiteType } from "@/types/application";
 import { validateApiKey, isRateLimited, getRequestMetadata } from "@/lib/api/security";
+import { verifyAdminRequest } from "@/lib/api/adminAuth";
 
 /**
  * POST /api/applications
@@ -134,8 +135,9 @@ export async function POST(request: NextRequest) {
  * Requires valid administrator API key or Bearer token.
  */
 export async function GET(request: NextRequest) {
-  // Prevent unauthorized access to sensitive customer application data
-  if (!validateApiKey(request)) {
+  // Prevent unauthorized access to sensitive customer application data (allow API key or Admin session)
+  const isAdmin = validateApiKey(request) || Boolean(verifyAdminRequest(request));
+  if (!isAdmin) {
     return NextResponse.json(
       {
         success: false,

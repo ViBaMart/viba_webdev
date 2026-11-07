@@ -1,20 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdminRequest } from "@/lib/api/adminAuth";
+import { verifyCustomerRequest } from "@/lib/api/customerAuth";
 import { createDomain, listDomains, DomainServiceError } from "@/services/domainService";
 import { CreateDomainDTO } from "@/types/domain";
 
 /**
  * GET /api/domains
  * List, search, and filter managed customer domains with expiry tracking and stats.
+ * Authorized for Admin (all domains) or Authenticated Customer (own domains only).
  */
 export async function GET(request: NextRequest) {
+  const isAdmin = !!verifyAdminRequest(request);
+  const customer = isAdmin ? null : await verifyCustomerRequest(request);
+
+  if (!isAdmin && !customer) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized: Authentication required." },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") || undefined;
   const status = searchParams.get("status") || undefined;
   const expiryFilter = (searchParams.get("expiryFilter") as "all" | "30_days" | "60_days" | "expired" | "active") || undefined;
   const paymentStatus = searchParams.get("paymentStatus") || undefined;
-  const customerEmail = searchParams.get("customerEmail") || undefined;
-  const customerName = searchParams.get("customerName") || undefined;
+  
+  // If customer, restrict query strictly to their email
+  const customerEmail = isAdmin ? (searchParams.get("customerEmail") || undefined) : customer?.email;
+  const customerName = isAdmin ? (searchParams.get("customerName") || undefined) : undefined;
   const limitParam = searchParams.get("limit");
   const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
@@ -29,11 +43,20 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
+    // If customer, double-check in-memory filter to prevent any leakage
+    const filteredDomains = customer
+      ? domains.filter(
+          (d) =>
+            (d.customerEmail && d.customerEmail.toLowerCase() === customer.email.toLowerCase()) ||
+            (d.customerId && d.customerId === customer.uid)
+        )
+      : domains;
+
     return NextResponse.json({
       success: true,
-      data: domains,
-      stats,
-      count: domains.length,
+      data: filteredDomains,
+      stats: isAdmin ? stats : undefined,
+      count: filteredDomains.length,
     });
   } catch (error) {
     console.error("Failed to query domains:", error);

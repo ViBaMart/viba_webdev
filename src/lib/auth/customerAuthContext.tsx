@@ -114,6 +114,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     const { auth } = getClientFirebase();
 
     if (!auth) {
+      if (process.env.NODE_ENV === "production") {
+        const err = new Error("Firebase Authentication is not configured in production.");
+        setError(err.message);
+        setIsLoading(false);
+        throw err;
+      }
+
       // Fallback in dev when Firebase API key is unconfigured
       const mockUid = `dev-user-${Date.now()}`;
       const mockUser: CustomerAuthUser = {
@@ -176,6 +183,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     const { auth } = getClientFirebase();
 
     if (!auth) {
+      if (process.env.NODE_ENV === "production") {
+        const err = new Error("Firebase Authentication is not configured in production.");
+        setError(err.message);
+        setIsLoading(false);
+        throw err;
+      }
+
       // Dev mode fallback
       const mockUid = `dev-cust-${Date.now()}`;
       const mockUser: CustomerAuthUser = {
@@ -268,6 +282,12 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     sampleName = "Alex Rivera",
     sampleBusiness = "Apex Fitness Studios"
   ) => {
+    if (process.env.NODE_ENV === "production") {
+      const err = new Error("Demo customer login is disabled in production.");
+      setError(err.message);
+      throw err;
+    }
+
     setError(null);
     setIsLoading(true);
     const mockUid = `demo-uid-${sampleEmail.replace(/[^a-zA-Z0-9]/g, "")}`;

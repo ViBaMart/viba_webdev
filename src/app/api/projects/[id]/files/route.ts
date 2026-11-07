@@ -38,9 +38,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const storagePath = `projects/${id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
       let url = "";
+      let resolvedStoragePath = storagePath;
       try {
-        const uploadResult = await uploadFileToStorage(buffer, file.name, file.type || "application/octet-stream");
+        const uploadResult = await uploadFileToStorage(
+          buffer,
+          file.name,
+          file.type || "application/octet-stream",
+          { folder: `projects/${id}` }
+        );
         url = uploadResult.downloadUrl;
+        resolvedStoragePath = uploadResult.path;
       } catch {
         // Fallback simulated URL in local dev without Firebase Storage keys
         url = `/api/storage/download?path=${encodeURIComponent(storagePath)}`;
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         size: file.size,
         contentType: file.type || "application/octet-stream",
         url,
-        storagePath,
+        storagePath: resolvedStoragePath,
         category: category as "Design Mockups" | "Preview Builds" | "Documentation" | "Source / Assets",
         uploadedBy: adminSession.email,
       });
