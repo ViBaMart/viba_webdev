@@ -100,11 +100,12 @@ async function processLogo() {
     .png()
     .toBuffer();
 
-  // Composite onto a centered 1024x1024 square canvas with ~10% padding
-  const targetW = 820;
+  // Composite onto a centered 1024x1024 Ultra-HD square canvas
+  // Maximizing scale (980px width) so the monogram fills the icon area without excessive padding
+  const targetW = 980;
   const targetH = Math.round(targetW * (cropH / cropW));
   const resizedPng = await sharp(croppedPng)
-    .resize(targetW, targetH, { fit: 'contain' })
+    .resize(targetW, targetH, { fit: 'contain', kernel: sharp.kernel.lanczos3 })
     .png()
     .toBuffer();
 
@@ -120,30 +121,46 @@ async function processLogo() {
     }
   })
   .composite([{ input: resizedPng, left: offsetX, top: offsetY }])
-  .png()
+  .png({ compressionLevel: 9 })
   .toBuffer();
 
-  // Save master transparent files
+  // Save master transparent files (Ultra-HD 1024x1024)
   fs.writeFileSync('public/vb-monogram-transparent.png', centeredLogo);
   fs.writeFileSync('public/vb-monogram.png', centeredLogo);
   console.log('Saved public/vb-monogram-transparent.png and public/vb-monogram.png');
 
-  // Generate favicon resolutions
-  const p16 = await sharp(centeredLogo).resize(16, 16).png().toBuffer();
-  const p32 = await sharp(centeredLogo).resize(32, 32).png().toBuffer();
-  const p48 = await sharp(centeredLogo).resize(48, 48).png().toBuffer();
-  const p180 = await sharp(centeredLogo).resize(180, 180).png().toBuffer();
-  const p192 = await sharp(centeredLogo).resize(192, 192).png().toBuffer();
-  const p512 = await sharp(centeredLogo).resize(512, 512).png().toBuffer();
+  // Generate crisp Ultra-HD favicon resolutions using Lanczos3 + subtle sharpening for maximum clarity
+  const generateCrispPng = async (dim) => {
+    return await sharp(centeredLogo)
+      .resize(dim, dim, { kernel: sharp.kernel.lanczos3 })
+      .sharpen({ sigma: dim <= 32 ? 0.8 : 0.5, m1: 0.5, m2: 1.5 })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+  };
+
+  const p16 = await generateCrispPng(16);
+  const p32 = await generateCrispPng(32);
+  const p48 = await generateCrispPng(48);
+  const p64 = await generateCrispPng(64);
+  const p96 = await generateCrispPng(96);
+  const p128 = await generateCrispPng(128);
+  const p180 = await generateCrispPng(180);
+  const p192 = await generateCrispPng(192);
+  const p256 = await generateCrispPng(256);
+  const p512 = await generateCrispPng(512);
 
   fs.writeFileSync('public/favicon-16x16.png', p16);
   fs.writeFileSync('public/favicon-32x32.png', p32);
+  fs.writeFileSync('public/favicon-48x48.png', p48);
+  fs.writeFileSync('public/favicon-96x96.png', p96);
   fs.writeFileSync('public/apple-touch-icon.png', p180);
   fs.writeFileSync('public/android-chrome-192x192.png', p192);
+  fs.writeFileSync('public/icon-192x192.png', p192);
   fs.writeFileSync('public/android-chrome-512x512.png', p512);
+  fs.writeFileSync('public/icon-512x512.png', p512);
 
-  // Build multi-size Windows ICO (16x16, 32x32, 48x48)
-  function createIco(pngBuffers) {
+  // Build multi-size Ultra-HD Windows ICO (16x16, 32x32, 48x48, 64x64, 128x128, 256x256)
+  function createIco(pngBuffers, dims) {
     const numImages = pngBuffers.length;
     const headerSize = 6;
     const dirEntrySize = 16;
@@ -155,13 +172,12 @@ async function processLogo() {
     header.writeUInt16LE(numImages, 4);
 
     const dirEntries = [];
-    const dims = [16, 32, 48];
     pngBuffers.forEach((buf, idx) => {
       const entry = Buffer.alloc(dirEntrySize);
       const dim = dims[idx];
 
-      entry.writeUInt8(dim === 256 ? 0 : dim, 0); // width
-      entry.writeUInt8(dim === 256 ? 0 : dim, 1); // height
+      entry.writeUInt8(dim === 256 ? 0 : dim, 0); // width (0 = 256)
+      entry.writeUInt8(dim === 256 ? 0 : dim, 1); // height (0 = 256)
       entry.writeUInt8(0, 2); // color palette
       entry.writeUInt8(0, 3); // reserved
       entry.writeUInt16LE(1, 4); // color planes
@@ -176,10 +192,12 @@ async function processLogo() {
     return Buffer.concat([header, ...dirEntries, ...pngBuffers]);
   }
 
-  const icoBuf = createIco([p16, p32, p48]);
+  const icoDims = [16, 32, 48, 64, 128, 256];
+  const icoBuffers = [p16, p32, p48, p64, p128, p256];
+  const icoBuf = createIco(icoBuffers, icoDims);
   fs.writeFileSync('public/favicon.ico', icoBuf);
   fs.writeFileSync('src/app/favicon.ico', icoBuf);
-  console.log('Saved public/favicon.ico and src/app/favicon.ico successfully!');
+  console.log('Saved public/favicon.ico and src/app/favicon.ico with Ultra-HD resolutions (16 to 256px)!');
 
   // Generate SVG wrappers for vector endpoints
   const pngBase64 = centeredLogo.toString('base64');
